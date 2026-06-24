@@ -2,32 +2,72 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ConfigProvider, Layout, Menu, theme } from "antd"
-import { StarFilled } from "@ant-design/icons"
+import { ConfigProvider, Dropdown, Layout, Menu, theme, type MenuProps } from "antd"
+import { StarFilled, SunOutlined, MoonOutlined, DesktopOutlined } from "@ant-design/icons"
+import { THEME_STORAGE_KEY, resolveTheme, type ThemeMode } from "../lib/theme"
 
 const NAV_ITEMS = [
   { key: "/repos", label: <Link href="/repos">我的仓库</Link> },
   { key: "/stars", label: <Link href="/stars">已 Star</Link> },
 ]
 
-function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(false)
+const THEME_MODE_ICONS: Record<ThemeMode, React.ReactNode> = {
+  light: <SunOutlined />,
+  dark: <MoonOutlined />,
+  system: <DesktopOutlined />,
+}
+
+const THEME_MODE_LABELS: Record<ThemeMode, string> = {
+  light: "亮色",
+  dark: "暗色",
+  system: "跟随系统",
+}
+
+function useThemeMode() {
+  const [mode, setModeState] = useState<ThemeMode>("system")
+  const [prefersDark, setPrefersDark] = useState(false)
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)")
-    // 首次挂载时同步系统当前主题，必然 setState，react-hooks/set-state-in-effect 对此场景误报
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+    // 首次挂载时同步已持久化的选择与系统偏好，必然 setState，
+    // react-hooks/set-state-in-effect 对此场景误报
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsDark(media.matches)
-    const onChange = (e: MediaQueryListEvent) => setIsDark(e.matches)
+    setModeState(stored === "light" || stored === "dark" ? stored : "system")
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)")
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPrefersDark(media.matches)
+    const onChange = (e: MediaQueryListEvent) => setPrefersDark(e.matches)
     media.addEventListener("change", onChange)
     return () => media.removeEventListener("change", onChange)
   }, [])
 
-  return isDark
+  const isDark = resolveTheme(mode, prefersDark) === "dark"
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light")
+  }, [isDark])
+
+  const setMode = (next: ThemeMode) => {
+    setModeState(next)
+    if (next === "system") {
+      window.localStorage.removeItem(THEME_STORAGE_KEY)
+    } else {
+      window.localStorage.setItem(THEME_STORAGE_KEY, next)
+    }
+  }
+
+  return { mode, isDark, setMode }
 }
 
 export default function AppShell({ children }: React.PropsWithChildren) {
-  const isDark = useIsDarkMode()
+  const { mode, isDark, setMode } = useThemeMode()
+
+  const themeMenuItems: MenuProps["items"] = (["light", "dark", "system"] as ThemeMode[]).map((m) => ({
+    key: m,
+    label: THEME_MODE_LABELS[m],
+    icon: THEME_MODE_ICONS[m],
+  }))
 
   return (
     <ConfigProvider
@@ -75,6 +115,17 @@ export default function AppShell({ children }: React.PropsWithChildren) {
             selectable={false}
             style={{ flex: 1, minWidth: 0, background: "transparent" }}
           />
+          <Dropdown
+            menu={{ items: themeMenuItems, selectedKeys: [mode], onClick: ({ key }) => setMode(key as ThemeMode) }}
+            trigger={["click"]}
+          >
+            <a
+              onClick={(e) => e.preventDefault()}
+              style={{ color: "#fff", fontSize: 18, flexShrink: 0, cursor: "pointer" }}
+            >
+              {THEME_MODE_ICONS[mode]}
+            </a>
+          </Dropdown>
         </Layout.Header>
         <Layout.Content style={{ padding: "16px 16px 32px" }}>
           <div className="page-container">{children}</div>

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db/client"
-import { syncRepos } from "@/lib/db/sync"
+import { syncRepos, getLastSyncedAt } from "@/lib/db/sync"
 import { createGitHubClient, listOwnedRepos, listStarredRepos } from "@/lib/github"
+
+export async function GET() {
+  return NextResponse.json({ lastSyncedAt: getLastSyncedAt(db) })
+}
 
 export async function POST() {
   const token = process.env.GITHUB_TOKEN

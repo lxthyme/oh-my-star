@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { eq } from "drizzle-orm"
 import { createDb } from "./client"
 import { repos, repoUserData } from "./schema"
-import { syncRepos } from "./sync"
+import { syncRepos, getLastSyncedAt } from "./sync"
 import type { GitHubRepoData } from "../github"
 
 function makeRepo(overrides: Partial<GitHubRepoData> = {}): GitHubRepoData {
@@ -96,5 +96,23 @@ describe("syncRepos", () => {
     })
 
     expect(result).toEqual({ ownedCount: 2, starredCount: 1 })
+  })
+})
+
+describe("getLastSyncedAt", () => {
+  it("returns null when there are no repos", () => {
+    const db = createDb(":memory:")
+    expect(getLastSyncedAt(db)).toBeNull()
+  })
+
+  it("returns the most recent synced_at across all repos", () => {
+    const db = createDb(":memory:")
+    syncRepos(db, { owned: [makeRepo({ id: 1 })], starred: [] })
+    db.update(repos).set({ syncedAt: "2026-01-01T00:00:00.000Z" }).where(eq(repos.id, 1)).run()
+
+    syncRepos(db, { owned: [makeRepo({ id: 2, fullName: "octocat/Spoon-Knife", name: "Spoon-Knife" })], starred: [] })
+    db.update(repos).set({ syncedAt: "2026-03-01T00:00:00.000Z" }).where(eq(repos.id, 2)).run()
+
+    expect(getLastSyncedAt(db)).toBe("2026-03-01T00:00:00.000Z")
   })
 })

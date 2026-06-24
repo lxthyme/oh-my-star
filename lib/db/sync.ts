@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import type { AppDatabase } from "./client"
 import { repos } from "./schema"
 import type { GitHubRepoData, StarredRepoData } from "../github"
@@ -72,4 +73,8 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
   })
 
   return { ownedCount: input.owned.length, starredCount: input.starred.length }
+}
+
+export function getLastSyncedAt(db: AppDatabase): string | null {
+  return db.select({ lastSyncedAt: sql<string | null>`MAX(${repos.syncedAt})` }).from(repos).get()!.lastSyncedAt
 }

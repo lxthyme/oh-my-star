@@ -47,6 +47,7 @@ export default function RepoList({ source }: RepoListProps) {
   const searchParams = useSearchParams()
   const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
   const page = Number(searchParams.get("page") ?? "1")
+  const perPage = Number(searchParams.get("perPage") ?? "30")
 
   const [data, setData] = useState<ReposResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -65,6 +66,7 @@ export default function RepoList({ source }: RepoListProps) {
       const qs = new URLSearchParams({
         source,
         page: String(page),
+        perPage: String(perPage),
         search: filters.search,
         type: filters.type,
         language: filters.language,
@@ -84,7 +86,7 @@ export default function RepoList({ source }: RepoListProps) {
     } finally {
       setLoading(false)
     }
-  }, [source, page, filters])
+  }, [source, page, perPage, filters])
 
   useEffect(() => {
     // 取数后必然 setState，react-hooks/set-state-in-effect 对所有 fetch-on-mount 都会报错
@@ -98,12 +100,16 @@ export default function RepoList({ source }: RepoListProps) {
   }, [fetchRepos])
 
   const updateFilters = (next: FilterValues) => {
-    const qs = new URLSearchParams({ ...next, page: "1" })
+    const qs = new URLSearchParams({ ...next, page: "1", perPage: String(perPage) })
     router.push(`?${qs.toString()}`)
   }
 
-  const updatePage = (nextPage: number) => {
-    const qs = new URLSearchParams({ ...filters, page: String(nextPage) })
+  const updatePage = (nextPage: number, nextPerPage: number) => {
+    const qs = new URLSearchParams({
+      ...filters,
+      page: String(nextPerPage !== perPage ? 1 : nextPage),
+      perPage: String(nextPerPage),
+    })
     router.push(`?${qs.toString()}`)
   }
 
@@ -205,7 +211,8 @@ export default function RepoList({ source }: RepoListProps) {
             pageSize={data.perPage}
             total={data.total}
             onChange={updatePage}
-            showSizeChanger={false}
+            showSizeChanger
+            pageSizeOptions={[10, 20, 30, 50, 100]}
           />
         </Row>
       )}

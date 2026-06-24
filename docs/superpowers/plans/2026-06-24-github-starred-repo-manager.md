@@ -72,19 +72,19 @@ vitest.config.ts                       -- Vitest 配置
 **Interfaces:**
 - Produces: `npm run test` / `npm run test:watch` 脚本，后续所有数据层任务依赖它们；`GITHUB_TOKEN` 环境变量约定，后续 `lib/github.ts` 和 API 路由依赖它。
 
-- [ ] **Step 1: 安装运行时依赖**
+- [x] **Step 1: 安装运行时依赖**
 
 ```bash
 npm install antd @ant-design/icons better-sqlite3 drizzle-orm @octokit/rest
 ```
 
-- [ ] **Step 2: 安装开发依赖**
+- [x] **Step 2: 安装开发依赖**
 
 ```bash
 npm install -D vitest @types/better-sqlite3
 ```
 
-- [ ] **Step 3: 创建 Vitest 配置**
+- [x] **Step 3: 创建 Vitest 配置**
 
 `vitest.config.ts`:
 
@@ -100,7 +100,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 4: 添加测试脚本**
+- [x] **Step 4: 添加测试脚本**
 
 修改 `package.json` 的 `scripts` 字段，加入：
 
@@ -109,7 +109,7 @@ export default defineConfig({
 "test:watch": "vitest"
 ```
 
-- [ ] **Step 5: 创建环境变量模板**
+- [x] **Step 5: 创建环境变量模板**
 
 `.env.local.example`:
 
@@ -117,7 +117,7 @@ export default defineConfig({
 GITHUB_TOKEN=ghp_your_personal_access_token
 ```
 
-- [ ] **Step 6: 更新 .gitignore**
+- [x] **Step 6: 更新 .gitignore**
 
 在 `.gitignore` 的 `# env files` 段落后追加（取消忽略示例文件，忽略 SQLite 数据文件）：
 
@@ -129,7 +129,7 @@ GITHUB_TOKEN=ghp_your_personal_access_token
 /data/*.db-*
 ```
 
-- [ ] **Step 7: 验证**
+- [x] **Step 7: 验证**
 
 ```bash
 npx tsc --noEmit
@@ -137,7 +137,7 @@ npx tsc --noEmit
 
 Expected: 无报错（此时还没有新代码引用新依赖，只是确认依赖安装没有破坏现有类型检查）。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add package.json package-lock.json vitest.config.ts .env.local.example .gitignore

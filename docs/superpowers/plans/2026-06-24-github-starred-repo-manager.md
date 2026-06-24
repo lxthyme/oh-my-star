@@ -974,7 +974,7 @@ git commit -m "实现 tags 数据层：创建/查询标签与 repo-标签关联"
 - Consumes: `AppDatabase` from `./client`（Task 2）；`repoUserData` from `./schema`（Task 2）。
 - Produces: `setFavorite(db, repoId, isFavorite: boolean): void`、`setNote(db, repoId, note: string): void`、`getUserData(db, repoId): { isFavorite: boolean; note: string | null }`。Task 10（favorite/note 路由）依赖这些名称。
 
-- [ ] **Step 1: 写测试**
+- [x] **Step 1: 写测试**
 
 `lib/db/user-data.test.ts`:
 
@@ -1023,7 +1023,7 @@ describe("getUserData", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 ```bash
 npm run test -- lib/db/user-data.test.ts
@@ -1031,7 +1031,7 @@ npm run test -- lib/db/user-data.test.ts
 
 Expected: FAIL，提示 `./user-data` 模块不存在。
 
-- [ ] **Step 3: 实现 user-data.ts**
+- [x] **Step 3: 实现 user-data.ts**
 
 `lib/db/user-data.ts`:
 
@@ -1070,7 +1070,7 @@ export function getUserData(db: AppDatabase, repoId: number): { isFavorite: bool
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 ```bash
 npm run test -- lib/db/user-data.test.ts
@@ -1078,7 +1078,7 @@ npm run test -- lib/db/user-data.test.ts
 
 Expected: 全部 PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/db/user-data.ts lib/db/user-data.test.ts

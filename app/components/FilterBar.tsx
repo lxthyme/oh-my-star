@@ -6,7 +6,7 @@ import type { TagOption } from "./TagSelect"
 export interface FilterValues {
   search: string
   searchDescription: "true" | "false"
-  type: "all" | "sources" | "forks" | "archived" | "templates"
+  type: "all" | "sources" | "forks" | "archived" | "mirrors" | "templates"
   language: string
   sort: "updated" | "name" | "stars" | "starred_at"
   favorite: "all" | "favorite" | "not_favorite"
@@ -22,11 +22,20 @@ interface FilterBarProps {
   onChange: (next: FilterValues) => void
 }
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS_OWNED = [
   { label: "All", value: "all" },
   { label: "Sources", value: "sources" },
   { label: "Forks", value: "forks" },
   { label: "Archived", value: "archived" },
+  { label: "Mirrors", value: "mirrors" },
+  { label: "Templates", value: "templates" },
+]
+
+const TYPE_OPTIONS_STARRED = [
+  { label: "All", value: "all" },
+  { label: "Sources", value: "sources" },
+  { label: "Forks", value: "forks" },
+  { label: "Mirrors", value: "mirrors" },
   { label: "Templates", value: "templates" },
 ]
 
@@ -43,6 +52,8 @@ const NOTE_OPTIONS = [
 ]
 
 export default function FilterBar({ value, languages, tags, showStarredSort, onChange }: FilterBarProps) {
+  const typeOptions = showStarredSort ? TYPE_OPTIONS_STARRED : TYPE_OPTIONS_OWNED
+
   const sortOptions = showStarredSort
     ? [
         { label: "Recently starred", value: "starred_at" },
@@ -80,7 +91,7 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
       </Space>
       <Select
         value={value.type}
-        options={TYPE_OPTIONS}
+        options={typeOptions}
         style={{ width: 140 }}
         onChange={(type) => onChange({ ...value, type })}
       />

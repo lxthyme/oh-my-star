@@ -22,6 +22,7 @@ function makeRepo(overrides: Partial<GitHubRepoData> = {}): GitHubRepoData {
     fork: false,
     private: false,
     isTemplate: false,
+    mirrorUrl: null,
     pushedAt: null,
     updatedAt: null,
     createdAt: null,
@@ -77,6 +78,14 @@ describe("syncRepos", () => {
     const row = db.select().from(repos).where(eq(repos.id, 1)).get()!
     expect(row.isStarred).toBe(1)
     expect(row.starredAt).toBe("2026-02-01T00:00:00Z")
+  })
+
+  it("stores mirrorUrl from GitHubRepoData", () => {
+    const db = createDb(":memory:")
+    syncRepos(db, { owned: [makeRepo({ mirrorUrl: "https://git.example.com/octocat/Hello-World.git" })], starred: [] })
+
+    const row = db.select().from(repos).where(eq(repos.id, 1)).get()!
+    expect(row.mirrorUrl).toBe("https://git.example.com/octocat/Hello-World.git")
   })
 
   it("returns counts matching the input lists", () => {

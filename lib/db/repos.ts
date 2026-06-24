@@ -3,7 +3,7 @@ import type { AppDatabase } from "./client"
 import { repos, repoUserData, repoTags, tags } from "./schema"
 
 export type RepoSource = "owned" | "starred"
-export type RepoTypeFilter = "all" | "sources" | "forks" | "archived" | "templates"
+export type RepoTypeFilter = "all" | "sources" | "forks" | "archived" | "mirrors" | "templates"
 export type RepoSort = "updated" | "name" | "stars" | "starred_at"
 export type TriStateFilter = "all" | "favorite" | "not_favorite"
 export type NoteFilterValue = "all" | "noted" | "not_noted"
@@ -77,6 +77,8 @@ function buildWhere(params: ListReposParams): SQL | undefined {
     conditions.push(eq(repos.fork, 1))
   } else if (params.type === "archived") {
     conditions.push(eq(repos.archived, 1))
+  } else if (params.type === "mirrors") {
+    conditions.push(sql`${repos.mirrorUrl} IS NOT NULL`)
   } else if (params.type === "templates") {
     conditions.push(eq(repos.isTemplate, 1))
   }

@@ -20,6 +20,7 @@ export interface GitHubRepoData {
   fork: boolean
   private: boolean
   isTemplate: boolean
+  mirrorUrl: string | null
   pushedAt: string | null
   updatedAt: string | null
   createdAt: string | null
@@ -40,6 +41,7 @@ interface RawGitHubRepo {
   fork?: boolean
   private?: boolean
   is_template?: boolean
+  mirror_url?: string | null
   pushed_at?: string | null
   updated_at?: string | null
   created_at?: string | null
@@ -62,6 +64,7 @@ function mapRepo(raw: RawGitHubRepo): GitHubRepoData {
     fork: Boolean(raw.fork),
     private: Boolean(raw.private),
     isTemplate: Boolean(raw.is_template),
+    mirrorUrl: raw.mirror_url ?? null,
     pushedAt: raw.pushed_at ?? null,
     updatedAt: raw.updated_at ?? null,
     createdAt: raw.created_at ?? null,

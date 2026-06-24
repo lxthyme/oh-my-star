@@ -57,6 +57,7 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
         fork: entry.repo.fork ? 1 : 0,
         private: entry.repo.private ? 1 : 0,
         isTemplate: entry.repo.isTemplate ? 1 : 0,
+        mirrorUrl: entry.repo.mirrorUrl,
         pushedAt: entry.repo.pushedAt,
         updatedAt: entry.repo.updatedAt,
         createdAt: entry.repo.createdAt,

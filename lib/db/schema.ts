@@ -16,6 +16,7 @@ export const repos = sqliteTable("repos", {
   fork: integer("fork").notNull().default(0),
   private: integer("private").notNull().default(0),
   isTemplate: integer("is_template").notNull().default(0),
+  mirrorUrl: text("mirror_url"),
   pushedAt: text("pushed_at"),
   updatedAt: text("updated_at"),
   createdAt: text("created_at"),

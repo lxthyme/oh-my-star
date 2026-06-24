@@ -19,6 +19,7 @@ describe("listRepos", () => {
     fork: number
     archived: number
     isTemplate: number
+    mirrorUrl: string | null
     isOwned: number
     isStarred: number
     starredAt: string | null
@@ -33,6 +34,7 @@ describe("listRepos", () => {
       fork: 0,
       archived: 0,
       isTemplate: 0,
+      mirrorUrl: null as string | null,
       isOwned: 1,
       isStarred: 0,
       starredAt: null as string | null,
@@ -42,8 +44,8 @@ describe("listRepos", () => {
     }
     db.run(
       sql.raw(
-        `INSERT INTO repos (id, full_name, name, owner_login, html_url, language, fork, archived, is_template, is_owned, is_starred, starred_at, stargazers_count, pushed_at)
-         VALUES (${repo.id}, '${repo.fullName}', '${repo.name}', 'octocat', 'https://github.com/${repo.fullName}', ${repo.language ? `'${repo.language}'` : "NULL"}, ${repo.fork}, ${repo.archived}, ${repo.isTemplate}, ${repo.isOwned}, ${repo.isStarred}, ${repo.starredAt ? `'${repo.starredAt}'` : "NULL"}, ${repo.stargazersCount}, '${repo.pushedAt}')`
+        `INSERT INTO repos (id, full_name, name, owner_login, html_url, language, fork, archived, is_template, mirror_url, is_owned, is_starred, starred_at, stargazers_count, pushed_at)
+         VALUES (${repo.id}, '${repo.fullName}', '${repo.name}', 'octocat', 'https://github.com/${repo.fullName}', ${repo.language ? `'${repo.language}'` : "NULL"}, ${repo.fork}, ${repo.archived}, ${repo.isTemplate}, ${repo.mirrorUrl ? `'${repo.mirrorUrl}'` : "NULL"}, ${repo.isOwned}, ${repo.isStarred}, ${repo.starredAt ? `'${repo.starredAt}'` : "NULL"}, ${repo.stargazersCount}, '${repo.pushedAt}')`
       )
     )
   }
@@ -71,6 +73,14 @@ describe("listRepos", () => {
 
     const result = listRepos(db, { source: "owned", type: "sources" })
     expect(result.items.map((r) => r.id)).toEqual([1])
+  })
+
+  it("filters by type=mirrors", () => {
+    insertRepo({ id: 1 })
+    insertRepo({ id: 2, fullName: "octocat/Mirror", name: "Mirror", mirrorUrl: "https://git.example.com/x.git" })
+
+    const result = listRepos(db, { source: "owned", type: "mirrors" })
+    expect(result.items.map((r) => r.id)).toEqual([2])
   })
 
   it("ignores language filter when set to 'all'", () => {

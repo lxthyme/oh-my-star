@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS repos (
   fork INTEGER NOT NULL DEFAULT 0,
   private INTEGER NOT NULL DEFAULT 0,
   is_template INTEGER NOT NULL DEFAULT 0,
+  mirror_url TEXT,
   pushed_at TEXT,
   updated_at TEXT,
   created_at TEXT,
@@ -52,6 +53,14 @@ CREATE TABLE IF NOT EXISTS repo_tags (
 
 export type AppDatabase = ReturnType<typeof drizzle<typeof schema>>
 
+// CREATE TABLE IF NOT EXISTS 不会给已存在的旧表补列，新列需要单独迁移。
+function migrate(sqlite: Database.Database): void {
+  const columns = sqlite.prepare("PRAGMA table_info(repos)").all() as { name: string }[]
+  if (!columns.some((column) => column.name === "mirror_url")) {
+    sqlite.exec("ALTER TABLE repos ADD COLUMN mirror_url TEXT")
+  }
+}
+
 export function createDb(dbPath: string): AppDatabase {
   if (dbPath !== ":memory:") {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true })
@@ -59,6 +68,7 @@ export function createDb(dbPath: string): AppDatabase {
   const sqlite = new Database(dbPath)
   sqlite.pragma("journal_mode = WAL")
   sqlite.exec(SCHEMA_SQL)
+  migrate(sqlite)
   return drizzle(sqlite, { schema })
 }
 

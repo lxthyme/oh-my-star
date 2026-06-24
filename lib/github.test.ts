@@ -53,6 +53,7 @@ describe("listOwnedRepos", () => {
         fork: false,
         private: false,
         isTemplate: false,
+        mirrorUrl: null,
         pushedAt: "2026-01-01T00:00:00Z",
         updatedAt: "2026-01-02T00:00:00Z",
         createdAt: "2025-01-01T00:00:00Z",
@@ -66,6 +67,16 @@ describe("listOwnedRepos", () => {
     expect(result[0].description).toBeNull()
     expect(result[0].topics).toEqual([])
     expect(result[0].language).toBeNull()
+  })
+
+  it("maps mirror_url to mirrorUrl, defaulting to null when absent", async () => {
+    const withMirror = await listOwnedRepos(
+      makeStubClient([{ ...RAW_REPO, mirror_url: "https://git.example.com/octocat/Hello-World.git" }])
+    )
+    expect(withMirror[0].mirrorUrl).toBe("https://git.example.com/octocat/Hello-World.git")
+
+    const withoutMirror = await listOwnedRepos(makeStubClient([RAW_REPO]))
+    expect(withoutMirror[0].mirrorUrl).toBeNull()
   })
 })
 

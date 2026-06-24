@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { AntdRegistry } from "@ant-design/nextjs-registry"
 import AppShell from "./components/AppShell"
+import { THEME_INLINE_SCRIPT } from "./lib/theme"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -16,7 +17,10 @@ export const viewport: Viewport = {
 }
 
 const RootLayout = ({ children }: React.PropsWithChildren) => (
-  <html lang="zh-CN">
+  <html lang="zh-CN" data-theme="light" suppressHydrationWarning>
+    <head>
+      <script dangerouslySetInnerHTML={{ __html: THEME_INLINE_SCRIPT }} />
+    </head>
     <body>
       <AntdRegistry>
         <AppShell>{children}</AppShell>

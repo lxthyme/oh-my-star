@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, Space, Tag as AntTag, Typography } from "antd"
+import { Button, Card, Space, Tag as AntTag, Typography } from "antd"
 import { ForkOutlined, HeartFilled, HeartOutlined, StarFilled, StarOutlined } from "@ant-design/icons"
 import TagSelect, { type TagOption } from "./TagSelect"
 import NoteEditor from "./NoteEditor"
@@ -33,6 +33,14 @@ interface RepoCardProps {
   onChangeTags: (id: number, tagNames: string[]) => Promise<void>
 }
 
+function languageColor(language: string) {
+  let hash = 0
+  for (let i = 0; i < language.length; i++) {
+    hash = (hash << 5) - hash + language.charCodeAt(i)
+  }
+  return `hsl(${Math.abs(hash) % 360}, 65%, 50%)`
+}
+
 export default function RepoCard({
   repo,
   allTags,
@@ -42,19 +50,29 @@ export default function RepoCard({
   onChangeTags,
 }: RepoCardProps) {
   return (
-    <Card size="small" style={{ height: "100%" }}>
-      <Space direction="vertical" size={8} style={{ width: "100%" }}>
+    <Card size="small" className="repo-card" style={{ height: "100%" }}>
+      <Space orientation="vertical" size={8} style={{ width: "100%" }}>
         <Space align="start" style={{ width: "100%", justifyContent: "space-between" }}>
           <Link href={repo.htmlUrl} target="_blank" rel="noopener noreferrer" strong>
             {repo.fullName}
           </Link>
-          <Space size={4}>
-            <a onClick={() => onToggleFavorite(repo.id, !repo.isFavorite)}>
-              {repo.isFavorite ? <HeartFilled style={{ color: "#eb2f96" }} /> : <HeartOutlined />}
-            </a>
-            <a onClick={() => onToggleStar(repo.id, !repo.isStarred)}>
-              {repo.isStarred ? <StarFilled style={{ color: "#fadb14" }} /> : <StarOutlined />}
-            </a>
+          <Space size={8}>
+            <Button
+              type="text"
+              shape="circle"
+              size="small"
+              aria-label={repo.isFavorite ? "取消收藏" : "收藏"}
+              icon={repo.isFavorite ? <HeartFilled style={{ color: "#eb2f96" }} /> : <HeartOutlined />}
+              onClick={() => onToggleFavorite(repo.id, !repo.isFavorite)}
+            />
+            <Button
+              type="text"
+              shape="circle"
+              size="small"
+              aria-label={repo.isStarred ? "取消 Star" : "Star"}
+              icon={repo.isStarred ? <StarFilled style={{ color: "#fadb14" }} /> : <StarOutlined />}
+              onClick={() => onToggleStar(repo.id, !repo.isStarred)}
+            />
             <NoteEditor note={repo.note} onSave={(note) => onSaveNote(repo.id, note)} />
           </Space>
         </Space>
@@ -65,16 +83,30 @@ export default function RepoCard({
           </Paragraph>
         )}
 
-        <Space size={12}>
-          {repo.language && <Text type="secondary">{repo.language}</Text>}
+        <Space size={12} wrap>
+          {repo.language && (
+            <Text type="secondary">
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: languageColor(repo.language),
+                  marginRight: 6,
+                }}
+              />
+              {repo.language}
+            </Text>
+          )}
           <Text type="secondary">
             <StarOutlined /> {repo.stargazersCount}
           </Text>
           <Text type="secondary">
             <ForkOutlined /> {repo.forksCount}
           </Text>
-          {repo.archived && <AntTag>Archived</AntTag>}
-          {repo.fork && <AntTag>Fork</AntTag>}
+          {repo.archived && <AntTag color="warning">Archived</AntTag>}
+          {repo.fork && <AntTag color="processing">Fork</AntTag>}
         </Space>
 
         <TagSelect

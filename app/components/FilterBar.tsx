@@ -73,58 +73,62 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
   ]
 
   return (
-    <Space wrap style={{ marginBottom: 16 }}>
-      <Input.Search
-        placeholder="Find a repository..."
-        allowClear
-        defaultValue={value.search}
-        onSearch={(search) => onChange({ ...value, search })}
-        style={{ width: 220 }}
-      />
-      <Space size={4}>
-        <span>搜索描述</span>
-        <Switch
-          size="small"
-          checked={value.searchDescription !== "false"}
-          onChange={(checked) => onChange({ ...value, searchDescription: checked ? "true" : "false" })}
+    <div className="mb-4 flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Input.Search
+          placeholder="Find a repository..."
+          allowClear
+          defaultValue={value.search}
+          onSearch={(search) => onChange({ ...value, search })}
+          className="w-full sm:w-[240px]"
         />
-      </Space>
-      <Select
-        value={value.type}
-        options={typeOptions}
-        style={{ width: 140 }}
-        onChange={(type) => onChange({ ...value, type })}
-      />
-      <Select
-        value={value.language}
-        options={[{ label: "语言：全部", value: "all" }, ...languages.map((lang) => ({ label: lang, value: lang }))]}
-        style={{ width: 160 }}
-        onChange={(language) => onChange({ ...value, language })}
-      />
-      <Select
-        value={value.sort}
-        options={sortOptions}
-        style={{ width: 160 }}
-        onChange={(sort) => onChange({ ...value, sort })}
-      />
-      <Select
-        value={value.favorite}
-        options={FAVORITE_OPTIONS}
-        style={{ width: 140 }}
-        onChange={(favorite) => onChange({ ...value, favorite })}
-      />
-      <Select
-        value={value.note}
-        options={NOTE_OPTIONS}
-        style={{ width: 140 }}
-        onChange={(note) => onChange({ ...value, note })}
-      />
-      <Select
-        value={value.tag}
-        options={tagOptions}
-        style={{ width: 160 }}
-        onChange={(tag) => onChange({ ...value, tag })}
-      />
-    </Space>
+        <Space size={4}>
+          <span>搜索描述</span>
+          <Switch
+            size="small"
+            checked={value.searchDescription !== "false"}
+            onChange={(checked) => onChange({ ...value, searchDescription: checked ? "true" : "false" })}
+          />
+        </Space>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Select
+          value={value.type}
+          options={typeOptions}
+          className="min-w-[120px] flex-1 sm:max-w-[140px]"
+          onChange={(type) => onChange({ ...value, type })}
+        />
+        <Select
+          value={value.language}
+          options={[{ label: "语言：全部", value: "all" }, ...languages.map((lang) => ({ label: lang, value: lang }))]}
+          className="min-w-[120px] flex-1 sm:max-w-[160px]"
+          onChange={(language) => onChange({ ...value, language })}
+        />
+        <Select
+          value={value.sort}
+          options={sortOptions}
+          className="min-w-[120px] flex-1 sm:max-w-[160px]"
+          onChange={(sort) => onChange({ ...value, sort })}
+        />
+        <Select
+          value={value.favorite}
+          options={FAVORITE_OPTIONS}
+          className="min-w-[120px] flex-1 sm:max-w-[140px]"
+          onChange={(favorite) => onChange({ ...value, favorite })}
+        />
+        <Select
+          value={value.note}
+          options={NOTE_OPTIONS}
+          className="min-w-[120px] flex-1 sm:max-w-[140px]"
+          onChange={(note) => onChange({ ...value, note })}
+        />
+        <Select
+          value={value.tag}
+          options={tagOptions}
+          className="min-w-[120px] flex-1 sm:max-w-[160px]"
+          onChange={(tag) => onChange({ ...value, tag })}
+        />
+      </div>
+    </div>
   )
 }

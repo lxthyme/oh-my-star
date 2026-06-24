@@ -51,6 +51,7 @@ export default function NoteEditor({ note, onSave }: NoteEditorProps) {
       <Button
         type="text"
         size="small"
+        aria-label={note ? "编辑备注" : "添加备注"}
         icon={note ? <FileTextOutlined style={{ color: "#1677ff" }} /> : <EditOutlined />}
       />
     </Popover>

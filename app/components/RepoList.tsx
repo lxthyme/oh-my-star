@@ -184,15 +184,20 @@ export default function RepoList({ source }: RepoListProps) {
             onChange={updateFilters}
           />
         </Col>
-        <Col>
-          <Button icon={<SyncOutlined spin={syncing} />} onClick={handleSync} loading={syncing}>
+        <Col xs={24} sm="auto">
+          <Button
+            icon={<SyncOutlined spin={syncing} />}
+            onClick={handleSync}
+            loading={syncing}
+            className="w-full sm:w-auto"
+          >
             同步
           </Button>
         </Col>
       </Row>
 
       <Spin spinning={loading}>
-        <Row gutter={[16, 16]}>
+        <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, 16]}>
           {data?.items.map((repo) => (
             <Col key={repo.id} xs={24} sm={12} lg={8}>
               <RepoCard
@@ -209,7 +214,7 @@ export default function RepoList({ source }: RepoListProps) {
       </Spin>
 
       {data && (
-        <Row justify="end" style={{ marginTop: 16 }}>
+        <div className="mt-4 flex justify-center sm:justify-end">
           <Pagination
             current={data.page}
             pageSize={data.perPage}
@@ -218,7 +223,7 @@ export default function RepoList({ source }: RepoListProps) {
             showSizeChanger
             pageSizeOptions={[10, 20, 30, 50, 100]}
           />
-        </Row>
+        </div>
       )}
     </div>
   )

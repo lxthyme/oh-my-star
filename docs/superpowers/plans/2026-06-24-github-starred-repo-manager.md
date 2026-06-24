@@ -1637,7 +1637,7 @@ git commit -m "添加 POST /api/sync：拉取 GitHub 数据并同步到本地缓
 - Consumes: `db` from `@/lib/db/client`（Task 2）；`listRepos`, `listDistinctLanguages`, `type ListReposParams` from `@/lib/db/repos`（Task 3）。
 - Produces: `GET /api/repos?source=owned|starred&...` 端点，返回 `{ items, total, page, perPage, languages }`。Task 17（RepoList 数据获取）依赖这个端点的 URL、query 参数名（`source`/`search`/`type`/`language`/`sort`/`favorite`/`note`/`tagId`/`page`/`perPage`）和响应结构。
 
-- [ ] **Step 1: 实现 route.ts**
+- [x] **Step 1: 实现 route.ts**
 
 `app/api/repos/route.ts`:
 
@@ -1673,7 +1673,7 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-- [ ] **Step 2: 手动验证**
+- [x] **Step 2: 手动验证**
 
 确保 Task 8 的同步已经跑过至少一次（`data/app.db` 里有数据），启动 dev server 后执行：
 
@@ -1691,7 +1691,7 @@ curl -i "http://localhost:6602/api/repos"
 
 Expected：第一条只返回 fork 仓库；第二条按 star 时间排序；第三条（缺 `source`）返回 400。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/api/repos/route.ts

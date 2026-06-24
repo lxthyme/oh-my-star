@@ -87,10 +87,13 @@ export default function RepoList({ source }: RepoListProps) {
   }, [source, page, filters])
 
   useEffect(() => {
+    // 取数后必然 setState，react-hooks/set-state-in-effect 对所有 fetch-on-mount 都会报错
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTags()
   }, [fetchTags])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRepos()
   }, [fetchRepos])
 

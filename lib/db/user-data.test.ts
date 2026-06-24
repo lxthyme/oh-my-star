@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { createDb } from "./client"
+import { createDb, type AppDatabase } from "./client"
 import { repos } from "./schema"
 import { setFavorite, setNote, getUserData } from "./user-data"
 
-const createTestRepo = (db: any, id: number) => {
+const createTestRepo = (db: AppDatabase, id: number) => {
   db.insert(repos)
     .values({
       id,

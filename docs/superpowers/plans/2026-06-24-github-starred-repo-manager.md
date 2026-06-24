@@ -1325,7 +1325,7 @@ git commit -m "添加 GitHub API 封装：列表/star/unstar"
 - Consumes: `AppDatabase` from `./client`（Task 2）；`repos` from `./schema`（Task 2）；`GitHubRepoData`, `StarredRepoData` from `../github`（Task 6）。
 - Produces: `syncRepos(db, input: SyncInput): SyncResult`，类型 `SyncInput { owned: GitHubRepoData[]; starred: StarredRepoData[] }` 和 `SyncResult { ownedCount: number; starredCount: number }`。Task 8（POST /api/sync）依赖这些名称。这是设计文档"同步机制"那条核心规则（未出现的旧记录置 0，但绝不删除 `repo_user_data`）的唯一实现位置，测试要重点覆盖这条规则。
 
-- [ ] **Step 1: 写测试**
+- [x] **Step 1: 写测试**
 
 `lib/db/sync.test.ts`:
 
@@ -1423,7 +1423,7 @@ describe("syncRepos", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 ```bash
 npm run test -- lib/db/sync.test.ts
@@ -1431,7 +1431,7 @@ npm run test -- lib/db/sync.test.ts
 
 Expected: FAIL，提示 `./sync` 模块不存在。
 
-- [ ] **Step 3: 实现 sync.ts**
+- [x] **Step 3: 实现 sync.ts**
 
 `lib/db/sync.ts`:
 
@@ -1512,7 +1512,7 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 ```bash
 npm run test -- lib/db/sync.test.ts
@@ -1520,7 +1520,7 @@ npm run test -- lib/db/sync.test.ts
 
 Expected: 全部 PASS。
 
-- [ ] **Step 5: 运行全部数据层测试，确认彼此无干扰**
+- [x] **Step 5: 运行全部数据层测试，确认彼此无干扰**
 
 ```bash
 npm run test
@@ -1528,7 +1528,7 @@ npm run test
 
 Expected: 全部 PASS（覆盖 Task 2-7 共 6 个测试文件）。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add lib/db/sync.ts lib/db/sync.test.ts

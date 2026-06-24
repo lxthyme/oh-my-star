@@ -156,7 +156,7 @@ git commit -m "添加数据库/GitHub API/测试相关依赖与基础配置"
 **Interfaces:**
 - Produces: `schema.ts` 导出 `repos` / `repoUserData` / `tags` / `repoTags` 四个 Drizzle 表对象；`client.ts` 导出 `createDb(dbPath: string): AppDatabase` 工厂函数、`AppDatabase` 类型、以及单例 `db`。后续所有 `lib/db/*.ts` 和 API 路由都依赖 `db` 或 `AppDatabase` 类型；测试依赖 `createDb(':memory:')`。
 
-- [ ] **Step 1: 写 schema**
+- [x] **Step 1: 写 schema**
 
 `lib/db/schema.ts`:
 
@@ -211,7 +211,7 @@ export const repoTags = sqliteTable(
 )
 ```
 
-- [ ] **Step 2: 写 client（含表结构 bootstrap）**
+- [x] **Step 2: 写 client（含表结构 bootstrap）**
 
 `lib/db/client.ts`:
 
@@ -294,7 +294,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 ```
 
-- [ ] **Step 3: 写测试**
+- [x] **Step 3: 写测试**
 
 `lib/db/client.test.ts`:
 
@@ -350,7 +350,7 @@ function db_insert_one(db: ReturnType<typeof createDb>) {
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 ```bash
 npm run test -- lib/db/client.test.ts
@@ -358,7 +358,7 @@ npm run test -- lib/db/client.test.ts
 
 Expected: 2 个测试全部 PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/db/schema.ts lib/db/client.ts lib/db/client.test.ts

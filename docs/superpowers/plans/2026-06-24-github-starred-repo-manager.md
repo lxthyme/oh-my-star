@@ -377,7 +377,7 @@ git commit -m "添加 SQLite 数据库 schema 与连接（repos/repo_user_data/t
 - Consumes: `AppDatabase` / `createDb` from `./client`（Task 2）；`repos`, `repoUserData`, `repoTags`, `tags` from `./schema`（Task 2）。
 - Produces: `listRepos(db, params: ListReposParams): ListReposResult`、`listDistinctLanguages(db, source): string[]`、`setStarred(db, repoId, isStarred): void`，以及类型 `ListReposParams` / `RepoListItem` / `ListReposResult` / `RepoSource` / `RepoTypeFilter` / `RepoSort` / `TriStateFilter` / `NoteFilterValue`。Task 9（GET /api/repos）、Task 12（star 路由）、Task 17（RepoList 前端类型）都依赖这些精确名称。
 
-- [ ] **Step 1: 写测试**
+- [x] **Step 1: 写测试**
 
 `lib/db/repos.test.ts`:
 
@@ -569,7 +569,7 @@ describe("setStarred", () => {
 
 `db.run(sql.raw(...))` 是因为 Drizzle 的 `AppDatabase` 没有"执行原始 SQL 字符串"的顶层方法，必须用 `sql.raw()` 包装后通过 `db.run()` 执行——这只在测试里为了快速造数据用，正式查询代码（Step 4）全部走 Drizzle 的类型安全 API，不出现原始字符串拼接。
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 ```bash
 npm run test -- lib/db/repos.test.ts
@@ -577,7 +577,7 @@ npm run test -- lib/db/repos.test.ts
 
 Expected: FAIL，提示 `./repos` 模块不存在或 `listRepos` 未定义。
 
-- [ ] **Step 3: 实现 repos.ts**
+- [x] **Step 3: 实现 repos.ts**
 
 `lib/db/repos.ts`:
 
@@ -782,7 +782,7 @@ export function setStarred(db: AppDatabase, repoId: number, isStarred: boolean):
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 ```bash
 npm run test -- lib/db/repos.test.ts
@@ -790,7 +790,7 @@ npm run test -- lib/db/repos.test.ts
 
 Expected: 全部 PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/db/repos.ts lib/db/repos.test.ts

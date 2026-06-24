@@ -1097,7 +1097,7 @@ git commit -m "实现 repo_user_data 数据层：收藏与备注的读写"
 - Produces: `createGitHubClient(token: string): Octokit`、`listOwnedRepos(client): Promise<GitHubRepoData[]>`、`listStarredRepos(client): Promise<StarredRepoData[]>`、`starRepo(client, owner, repo): Promise<void>`、`unstarRepo(client, owner, repo): Promise<void>`，类型 `GitHubRepoData`（字段名与 `lib/db/sync.ts`、`lib/db/repos.ts` 的 `RepoListItem` 保持一致的 camelCase 命名）和 `StarredRepoData { repo: GitHubRepoData; starredAt: string }`。Task 7（sync）、Task 8（/api/sync）、Task 12（/api/repos/[id]/star）依赖这些名称。
 - 测试范围说明：本任务只测 `mapRepo` 的字段转换逻辑（用一个满足最小接口的 stub client，不发真实网络请求），不测试 `starRepo`/`unstarRepo` 的网络行为——这部分按设计文档"测试策略"的约定，在 Task 8 用真实 `GITHUB_TOKEN` 跑 `POST /api/sync` 时手动验证一次即可。
 
-- [ ] **Step 1: 写测试**
+- [x] **Step 1: 写测试**
 
 `lib/github.test.ts`:
 
@@ -1185,7 +1185,7 @@ describe("listStarredRepos", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 ```bash
 npm run test -- lib/github.test.ts
@@ -1193,7 +1193,7 @@ npm run test -- lib/github.test.ts
 
 Expected: FAIL，提示 `./github` 模块不存在。
 
-- [ ] **Step 3: 实现 github.ts**
+- [x] **Step 3: 实现 github.ts**
 
 `lib/github.ts`:
 
@@ -1298,7 +1298,7 @@ export async function unstarRepo(client: Octokit, owner: string, repo: string): 
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 ```bash
 npm run test -- lib/github.test.ts
@@ -1306,7 +1306,7 @@ npm run test -- lib/github.test.ts
 
 Expected: 全部 PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/github.ts lib/github.test.ts

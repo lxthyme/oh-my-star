@@ -809,7 +809,7 @@ git commit -m "实现 repos 查询层：筛选/排序/分页与 setStarred"
 - Consumes: `AppDatabase` from `./client`（Task 2）；`repoTags`, `tags` from `./schema`（Task 2）。
 - Produces: `listTags(db): TagOption[]`、`createTag(db, name): TagOption`（按名称幂等，已存在则返回原有记录）、`getRepoTags(db, repoId): TagOption[]`、`setRepoTags(db, repoId, tagNames: string[]): TagOption[]`（整体替换某个 repo 的标签集合），类型 `TagOption { id: number; name: string }`。Task 11（tags 相关路由）、Task 13（TagSelect 组件）依赖这些名称。
 
-- [ ] **Step 1: 写测试**
+- [x] **Step 1: 写测试**
 
 `lib/db/tags.test.ts`:
 
@@ -887,7 +887,7 @@ describe("setRepoTags / getRepoTags", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 ```bash
 npm run test -- lib/db/tags.test.ts
@@ -895,7 +895,7 @@ npm run test -- lib/db/tags.test.ts
 
 Expected: FAIL，提示 `./tags` 模块不存在。
 
-- [ ] **Step 3: 实现 tags.ts**
+- [x] **Step 3: 实现 tags.ts**
 
 `lib/db/tags.ts`:
 
@@ -947,7 +947,7 @@ export function setRepoTags(db: AppDatabase, repoId: number, tagNames: string[])
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 ```bash
 npm run test -- lib/db/tags.test.ts
@@ -955,7 +955,7 @@ npm run test -- lib/db/tags.test.ts
 
 Expected: 全部 PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/db/tags.ts lib/db/tags.test.ts

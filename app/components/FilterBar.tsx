@@ -43,12 +43,17 @@ const NOTE_OPTIONS = [
 ]
 
 export default function FilterBar({ value, languages, tags, showStarredSort, onChange }: FilterBarProps) {
-  const sortOptions = [
-    { label: "Last updated", value: "updated" },
-    { label: "Name", value: "name" },
-    { label: "Stars", value: "stars" },
-    ...(showStarredSort ? [{ label: "Recently starred", value: "starred_at" }] : []),
-  ]
+  const sortOptions = showStarredSort
+    ? [
+        { label: "Recently starred", value: "starred_at" },
+        { label: "Recently active", value: "updated" },
+        { label: "Most stars", value: "stars" },
+      ]
+    : [
+        { label: "Last updated", value: "updated" },
+        { label: "Name", value: "name" },
+        { label: "Stars", value: "stars" },
+      ]
 
   const tagOptions = [
     { label: "标签：全部", value: "all" },

@@ -31,13 +31,14 @@ const DEFAULT_FILTERS: FilterValues = {
   tag: "all",
 }
 
-function filtersFromSearchParams(sp: URLSearchParams): FilterValues {
+function filtersFromSearchParams(sp: URLSearchParams, source: RepoListProps["source"]): FilterValues {
+  const defaultSort: FilterValues["sort"] = source === "starred" ? "starred_at" : DEFAULT_FILTERS.sort
   return {
     search: sp.get("search") ?? DEFAULT_FILTERS.search,
     searchDescription: (sp.get("searchDescription") as FilterValues["searchDescription"]) ?? DEFAULT_FILTERS.searchDescription,
     type: (sp.get("type") as FilterValues["type"]) ?? DEFAULT_FILTERS.type,
     language: sp.get("language") ?? DEFAULT_FILTERS.language,
-    sort: (sp.get("sort") as FilterValues["sort"]) ?? DEFAULT_FILTERS.sort,
+    sort: (sp.get("sort") as FilterValues["sort"]) ?? defaultSort,
     favorite: (sp.get("favorite") as FilterValues["favorite"]) ?? DEFAULT_FILTERS.favorite,
     note: (sp.get("note") as FilterValues["note"]) ?? DEFAULT_FILTERS.note,
     tag: sp.get("tag") ?? DEFAULT_FILTERS.tag,
@@ -47,7 +48,7 @@ function filtersFromSearchParams(sp: URLSearchParams): FilterValues {
 export default function RepoList({ source }: RepoListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams])
+  const filters = useMemo(() => filtersFromSearchParams(searchParams, source), [searchParams, source])
   const page = Number(searchParams.get("page") ?? "1")
   const perPage = Number(searchParams.get("perPage") ?? "30")
 

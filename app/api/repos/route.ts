@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   const params: ListReposParams = {
     source,
     search: sp.get("search") ?? undefined,
+    searchDescription: sp.get("searchDescription") !== "false",
     type: (sp.get("type") as ListReposParams["type"]) ?? "all",
     language: sp.get("language") ?? undefined,
     sort: (sp.get("sort") as ListReposParams["sort"]) ?? "updated",

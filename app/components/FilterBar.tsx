@@ -1,10 +1,11 @@
 "use client"
 
-import { Input, Select, Space } from "antd"
+import { Input, Select, Space, Switch } from "antd"
 import type { TagOption } from "./TagSelect"
 
 export interface FilterValues {
   search: string
+  searchDescription: "true" | "false"
   type: "all" | "sources" | "forks" | "archived" | "templates"
   language: string
   sort: "updated" | "name" | "stars" | "starred_at"
@@ -64,6 +65,14 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
         onSearch={(search) => onChange({ ...value, search })}
         style={{ width: 220 }}
       />
+      <Space size={4}>
+        <span>搜索描述</span>
+        <Switch
+          size="small"
+          checked={value.searchDescription !== "false"}
+          onChange={(checked) => onChange({ ...value, searchDescription: checked ? "true" : "false" })}
+        />
+      </Space>
       <Select
         value={value.type}
         options={TYPE_OPTIONS}

@@ -11,6 +11,7 @@ export type NoteFilterValue = "all" | "noted" | "not_noted"
 export interface ListReposParams {
   source: RepoSource
   search?: string
+  searchDescription?: boolean
   type?: RepoTypeFilter
   language?: string
   sort?: RepoSort
@@ -63,7 +64,11 @@ function buildWhere(params: ListReposParams): SQL | undefined {
 
   if (params.search) {
     const term = `%${params.search}%`
-    conditions.push(sql`(${repos.name} LIKE ${term} OR ${repos.description} LIKE ${term})`)
+    conditions.push(
+      params.searchDescription ?? true
+        ? sql`(${repos.name} LIKE ${term} OR ${repos.description} LIKE ${term})`
+        : sql`${repos.name} LIKE ${term}`
+    )
   }
 
   if (params.type === "sources") {

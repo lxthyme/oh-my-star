@@ -22,6 +22,7 @@ interface ReposResponse {
 
 const DEFAULT_FILTERS: FilterValues = {
   search: "",
+  searchDescription: "true",
   type: "all",
   language: "all",
   sort: "updated",
@@ -33,6 +34,7 @@ const DEFAULT_FILTERS: FilterValues = {
 function filtersFromSearchParams(sp: URLSearchParams): FilterValues {
   return {
     search: sp.get("search") ?? DEFAULT_FILTERS.search,
+    searchDescription: (sp.get("searchDescription") as FilterValues["searchDescription"]) ?? DEFAULT_FILTERS.searchDescription,
     type: (sp.get("type") as FilterValues["type"]) ?? DEFAULT_FILTERS.type,
     language: sp.get("language") ?? DEFAULT_FILTERS.language,
     sort: (sp.get("sort") as FilterValues["sort"]) ?? DEFAULT_FILTERS.sort,
@@ -68,6 +70,7 @@ export default function RepoList({ source }: RepoListProps) {
         page: String(page),
         perPage: String(perPage),
         search: filters.search,
+        searchDescription: filters.searchDescription,
         type: filters.type,
         language: filters.language,
         sort: filters.sort,

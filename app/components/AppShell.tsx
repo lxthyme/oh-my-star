@@ -36,7 +36,6 @@ function useThemeMode() {
     setModeState(stored === "light" || stored === "dark" ? stored : "system")
 
     const media = window.matchMedia("(prefers-color-scheme: dark)")
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPrefersDark(media.matches)
     const onChange = (e: MediaQueryListEvent) => setPrefersDark(e.matches)
     media.addEventListener("change", onChange)

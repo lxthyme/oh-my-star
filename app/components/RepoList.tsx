@@ -90,6 +90,8 @@ export default function RepoList({ source }: RepoListProps) {
     } finally {
       setLoading(false)
     }
+    // syncVersion 不在函数体内使用，仅作为"全局同步完成"的刷新信号触发重新拉取
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, page, perPage, filters, syncVersion])
 
   useEffect(() => {

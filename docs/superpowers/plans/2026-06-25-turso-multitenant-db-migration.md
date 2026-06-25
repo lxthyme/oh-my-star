@@ -118,7 +118,7 @@ EOF
 
 > 这个任务把 schema 改写、驱动切换、测试基建合并成一个任务而不拆开——三者改完之前项目处于不可编译的中间状态（`client.ts` 还在用旧驱动配旧 schema 形状），拆成多个"任务"会留下无法独立通过测试的提交，违反"每个任务结束都是可测试的交付物"的要求。
 
-- [ ] **Step 1: 写新的 `client.test.ts`（先写测试，此时它会因为找不到新表/新模块而失败）**
+- [x] **Step 1: 写新的 `client.test.ts`（先写测试，此时它会因为找不到新表/新模块而失败）**
 
 Modify `lib/db/client.test.ts`（整个文件替换为）：
 
@@ -190,12 +190,12 @@ describe("createTestDb", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run lib/db/client.test.ts`
 Expected: FAIL（`./test-helpers` 模块不存在，且 `userRepos`/`repoTags` 还不是新形状）。
 
-- [ ] **Step 3: 改写 `lib/db/schema.ts`**
+- [x] **Step 3: 改写 `lib/db/schema.ts`**
 
 Modify `lib/db/schema.ts`（整个文件替换为）：
 
@@ -279,7 +279,7 @@ export const repoTags = sqliteTable(
 )
 ```
 
-- [ ] **Step 4: 改写 `lib/db/client.ts`（换成 libSQL 驱动，去掉内联建表/迁移逻辑）**
+- [x] **Step 4: 改写 `lib/db/client.ts`（换成 libSQL 驱动，去掉内联建表/迁移逻辑）**
 
 Modify `lib/db/client.ts`（整个文件替换为）：
 
@@ -309,12 +309,12 @@ if (process.env.NODE_ENV !== "production") {
 }
 ```
 
-- [ ] **Step 5: 生成首个 migration（此时 schema.ts 已是最终多租户形状，生成的 SQL 直接就是目标结构，不需要中间版本）**
+- [x] **Step 5: 生成首个 migration（此时 schema.ts 已是最终多租户形状，生成的 SQL 直接就是目标结构，不需要中间版本）**
 
 Run: `npm run db:generate`
 Expected: 在 `./drizzle` 目录下生成 `0000_xxx.sql`（建表语句）与 `meta/_journal.json`、`meta/0000_snapshot.json`。打开生成的 `.sql` 文件确认包含 `CREATE TABLE` `repos`、`user_repos`、`repo_user_data`、`tags`、`repo_tags` 五张表。
 
-- [ ] **Step 6: 创建测试基建 `test-helpers.ts`（对生成的 migration 应用到 `:memory:` 实例）**
+- [x] **Step 6: 创建测试基建 `test-helpers.ts`（对生成的 migration 应用到 `:memory:` 实例）**
 
 Create `lib/db/test-helpers.ts`:
 
@@ -333,12 +333,12 @@ export async function createTestDb(): Promise<AppDatabase> {
 }
 ```
 
-- [ ] **Step 7: 运行测试确认通过**
+- [x] **Step 7: 运行测试确认通过**
 
 Run: `npx vitest run lib/db/client.test.ts`
 Expected: 2 个测试全部 PASS。
 
-- [ ] **Step 8: 类型检查**
+- [x] **Step 8: 类型检查**
 
 Run: `npx tsc --noEmit`
 Expected: 报错——`lib/db/sync.ts`、`lib/db/repos.ts`、`lib/db/tags.ts`、`lib/db/user-data.ts` 及其测试文件会因为引用旧的 `repos.isOwned` 等已删除字段而编译失败。**这是预期的**，Task 3-6 会逐一修复；本任务先确认 `lib/db/schema.ts`、`lib/db/client.ts`、`lib/db/test-helpers.ts`、`lib/db/client.test.ts` 这四个文件本身没有类型错误：
@@ -346,7 +346,7 @@ Expected: 报错——`lib/db/sync.ts`、`lib/db/repos.ts`、`lib/db/tags.ts`、
 Run: `npx tsc --noEmit 2>&1 | grep -E "^(lib/db/schema|lib/db/client|lib/db/test-helpers)"`
 Expected: 无输出。
 
-- [ ] **Step 9: 提交（包含生成的 `drizzle/` 迁移文件，必须随代码一起入库）**
+- [x] **Step 9: 提交（包含生成的 `drizzle/` 迁移文件，必须随代码一起入库）**
 
 ```bash
 git add lib/db/schema.ts lib/db/client.ts lib/db/test-helpers.ts lib/db/client.test.ts drizzle/

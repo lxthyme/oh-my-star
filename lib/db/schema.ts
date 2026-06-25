@@ -1,4 +1,10 @@
-import { sqliteTable, integer, text, primaryKey } from "drizzle-orm/sqlite-core"
+import {
+  sqliteTable,
+  integer,
+  text,
+  primaryKey,
+  unique,
+} from "drizzle-orm/sqlite-core"
 
 export const repos = sqliteTable("repos", {
   id: integer("id").primaryKey(),
@@ -20,30 +26,52 @@ export const repos = sqliteTable("repos", {
   pushedAt: text("pushed_at"),
   updatedAt: text("updated_at"),
   createdAt: text("created_at"),
-  isOwned: integer("is_owned").notNull().default(0),
-  isStarred: integer("is_starred").notNull().default(0),
-  starredAt: text("starred_at"),
-  syncedAt: text("synced_at"),
 })
 
-export const repoUserData = sqliteTable("repo_user_data", {
-  repoId: integer("repo_id").primaryKey(),
-  isFavorite: integer("is_favorite").notNull().default(0),
-  note: text("note"),
-  noteUpdatedAt: text("note_updated_at"),
-})
+export const userRepos = sqliteTable(
+  "user_repos",
+  {
+    userId: integer("user_id").notNull(),
+    repoId: integer("repo_id").notNull(),
+    isOwned: integer("is_owned").notNull().default(0),
+    isStarred: integer("is_starred").notNull().default(0),
+    starredAt: text("starred_at"),
+    syncedAt: text("synced_at"),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.repoId] })],
+)
 
-export const tags = sqliteTable("tags", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull().unique(),
-  createdAt: text("created_at").notNull(),
-})
+export const repoUserData = sqliteTable(
+  "repo_user_data",
+  {
+    userId: integer("user_id").notNull(),
+    repoId: integer("repo_id").notNull(),
+    isFavorite: integer("is_favorite").notNull().default(0),
+    note: text("note"),
+    noteUpdatedAt: text("note_updated_at"),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.repoId] })],
+)
+
+export const tags = sqliteTable(
+  "tags",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id").notNull(),
+    name: text("name").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [unique().on(table.userId, table.name)],
+)
 
 export const repoTags = sqliteTable(
   "repo_tags",
   {
+    userId: integer("user_id").notNull(),
     repoId: integer("repo_id").notNull(),
     tagId: integer("tag_id").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.repoId, table.tagId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.repoId, table.tagId] }),
+  ],
 )

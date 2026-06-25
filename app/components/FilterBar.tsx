@@ -1,6 +1,7 @@
 "use client"
 
 import { Input, Select, Space, Switch } from "antd"
+import { SortAscendingOutlined } from "@ant-design/icons"
 import type { TagOption } from "./TagSelect"
 
 export interface FilterValues {
@@ -91,7 +92,7 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
           />
         </Space>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Select
           value={value.type}
           options={typeOptions}
@@ -103,12 +104,6 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
           options={[{ label: "语言：全部", value: "all" }, ...languages.map((lang) => ({ label: lang, value: lang }))]}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"
           onChange={(language) => onChange({ ...value, language })}
-        />
-        <Select
-          value={value.sort}
-          options={sortOptions}
-          className="min-w-[120px] flex-1 sm:max-w-[160px]"
-          onChange={(sort) => onChange({ ...value, sort })}
         />
         <Select
           value={value.favorite}
@@ -127,6 +122,13 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
           options={tagOptions}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"
           onChange={(tag) => onChange({ ...value, tag })}
+        />
+        <Select
+          value={value.sort}
+          options={sortOptions}
+          suffixIcon={<SortAscendingOutlined />}
+          className="ml-auto min-w-[140px] sm:max-w-[170px]"
+          onChange={(sort) => onChange({ ...value, sort })}
         />
       </div>
     </div>

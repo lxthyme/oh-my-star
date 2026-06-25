@@ -227,6 +227,25 @@ export function listDistinctLanguages(
   return [...new Set(rows.map((row) => row.language as string))].sort()
 }
 
+export interface RepoSourceCounts {
+  owned: number
+  starred: number
+}
+
+export function countReposBySource(db: AppDatabase): RepoSourceCounts {
+  const owned = db
+    .select({ count: sql<number>`count(*)` })
+    .from(repos)
+    .where(eq(repos.isOwned, 1))
+    .get()!.count
+  const starred = db
+    .select({ count: sql<number>`count(*)` })
+    .from(repos)
+    .where(eq(repos.isStarred, 1))
+    .get()!.count
+  return { owned, starred }
+}
+
 export function setStarred(
   db: AppDatabase,
   repoId: number,

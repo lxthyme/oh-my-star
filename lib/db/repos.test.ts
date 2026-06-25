@@ -2,7 +2,12 @@ import { describe, expect, it, beforeEach } from "vitest"
 import { sql } from "drizzle-orm"
 import { createDb, type AppDatabase } from "./client"
 import { repoUserData, repoTags, tags } from "./schema"
-import { listRepos, listDistinctLanguages, setStarred } from "./repos"
+import {
+  listRepos,
+  listDistinctLanguages,
+  setStarred,
+  countReposBySource,
+} from "./repos"
 
 describe("listRepos", () => {
   let db: AppDatabase
@@ -242,6 +247,22 @@ describe("listDistinctLanguages", () => {
     )
 
     expect(listDistinctLanguages(db, "owned")).toEqual(["Python", "TypeScript"])
+  })
+})
+
+describe("countReposBySource", () => {
+  it("counts owned and starred repos independently of filters", () => {
+    const db = createDb(":memory:")
+    db.run(
+      sql.raw(
+        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned, is_starred) VALUES
+         (1, 'octocat/A', 'A', 'octocat', 'https://x', 1, 0),
+         (2, 'octocat/B', 'B', 'octocat', 'https://x', 1, 1),
+         (3, 'octocat/C', 'C', 'octocat', 'https://x', 0, 1)`,
+      ),
+    )
+
+    expect(countReposBySource(db)).toEqual({ owned: 2, starred: 2 })
   })
 })
 

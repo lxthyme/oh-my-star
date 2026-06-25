@@ -21,11 +21,6 @@ import {
 import { THEME_STORAGE_KEY, resolveTheme, type ThemeMode } from "../lib/theme"
 import { SyncProvider, useSync } from "./SyncContext"
 
-const NAV_ITEMS = [
-  { key: "/repos", label: <Link href="/repos">我的仓库</Link> },
-  { key: "/stars", label: <Link href="/stars">已 Star</Link> },
-]
-
 const THEME_MODE_ICONS: Record<ThemeMode, React.ReactNode> = {
   light: <SunOutlined />,
   dark: <MoonOutlined />,
@@ -81,6 +76,38 @@ function formatSyncTime(iso: string): string {
   const d = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, "0")
   return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function NavMenu() {
+  const { repoCounts } = useSync()
+  const items = [
+    {
+      key: "/repos",
+      label: (
+        <Link href="/repos">
+          我的仓库{repoCounts ? ` (${repoCounts.owned})` : ""}
+        </Link>
+      ),
+    },
+    {
+      key: "/stars",
+      label: (
+        <Link href="/stars">
+          已 Star{repoCounts ? ` (${repoCounts.starred})` : ""}
+        </Link>
+      ),
+    },
+  ]
+
+  return (
+    <Menu
+      theme="dark"
+      mode="horizontal"
+      items={items}
+      selectable={false}
+      style={{ flex: 1, minWidth: 0, background: "transparent" }}
+    />
+  )
 }
 
 function SyncButton() {
@@ -178,13 +205,7 @@ export default function AppShell({ children }: React.PropsWithChildren) {
               <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
               <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
             </Link>
-            <Menu
-              theme="dark"
-              mode="horizontal"
-              items={NAV_ITEMS}
-              selectable={false}
-              style={{ flex: 1, minWidth: 0, background: "transparent" }}
-            />
+            <NavMenu />
             <SyncButton />
             <Dropdown
               menu={{

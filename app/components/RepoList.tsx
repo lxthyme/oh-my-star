@@ -63,7 +63,7 @@ export default function RepoList({ source }: RepoListProps) {
   const page = Number(searchParams.get("page") ?? "1")
   const perPage = Number(searchParams.get("perPage") ?? "30")
 
-  const { syncVersion } = useSync()
+  const { syncVersion, refreshCounts } = useSync()
   const [data, setData] = useState<ReposResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [allTags, setAllTags] = useState<TagOption[]>([])
@@ -167,6 +167,7 @@ export default function RepoList({ source }: RepoListProps) {
       await callAndRefresh(`/api/repos/${id}/star`, next ? "PUT" : "DELETE")
     ) {
       fetchRepos()
+      refreshCounts()
     }
   }
 

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm"
 import type { AppDatabase } from "./client"
-import { repos, repoUserData, repoTags, tags } from "./schema"
+import { repos, userRepos, repoUserData, repoTags, tags } from "./schema"
 
 export type RepoSource = "owned" | "starred"
 export type RepoTypeFilter =
@@ -63,11 +63,13 @@ export interface ListReposResult {
 
 const DEFAULT_PER_PAGE = 30
 
-function buildWhere(params: ListReposParams): SQL | undefined {
-  const conditions: SQL[] = []
+function buildWhere(userId: number, params: ListReposParams): SQL | undefined {
+  const conditions: SQL[] = [eq(userRepos.userId, userId)]
 
   conditions.push(
-    params.source === "owned" ? eq(repos.isOwned, 1) : eq(repos.isStarred, 1),
+    params.source === "owned"
+      ? eq(userRepos.isOwned, 1)
+      : eq(userRepos.isStarred, 1),
   )
 
   if (params.search) {
@@ -117,50 +119,67 @@ function buildWhere(params: ListReposParams): SQL | undefined {
 
   if (params.tagId === "untagged") {
     conditions.push(
-      sql`NOT EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id})`,
+      sql`NOT EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.userId} = ${userId})`,
     )
   } else if (typeof params.tagId === "number") {
     conditions.push(
-      sql`EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.tagId} = ${params.tagId})`,
+      sql`EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.tagId} = ${params.tagId} AND ${repoTags.userId} = ${userId})`,
     )
   }
 
   return and(...conditions)
 }
 
-export function listRepos(
+export async function listRepos(
   db: AppDatabase,
+  userId: number,
   params: ListReposParams,
-): ListReposResult {
+): Promise<ListReposResult> {
   const page = params.page && params.page > 0 ? params.page : 1
   const perPage =
     params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE
-  const where = buildWhere(params)
+  const where = buildWhere(userId, params)
 
   const sortColumnMap = {
     updated: repos.pushedAt,
     name: repos.name,
     stars: repos.stargazersCount,
-    starred_at: repos.starredAt,
+    starred_at: userRepos.starredAt,
   } as const
   const sortColumn = sortColumnMap[params.sort ?? "updated"]
   const orderFn = params.sort === "name" ? asc : desc
 
-  const total = db
+  const totalRow = await db
     .select({ count: sql<number>`count(*)` })
     .from(repos)
-    .leftJoin(repoUserData, eq(repoUserData.repoId, repos.id))
+    .innerJoin(userRepos, eq(userRepos.repoId, repos.id))
+    .leftJoin(
+      repoUserData,
+      and(
+        eq(repoUserData.repoId, repos.id),
+        eq(repoUserData.userId, userId),
+      ),
+    )
     .where(where)
-    .get()!.count
+    .get()
+  const total = totalRow!.count
 
-  const rows = db
+  const rows = await db
     .select({
       repo: repos,
+      userRepo: userRepos,
       isFavorite: repoUserData.isFavorite,
       note: repoUserData.note,
     })
     .from(repos)
-    .leftJoin(repoUserData, eq(repoUserData.repoId, repos.id))
+    .innerJoin(userRepos, eq(userRepos.repoId, repos.id))
+    .leftJoin(
+      repoUserData,
+      and(
+        eq(repoUserData.repoId, repos.id),
+        eq(repoUserData.userId, userId),
+      ),
+    )
     .where(where)
     .orderBy(orderFn(sortColumn))
     .limit(perPage)
@@ -169,11 +188,13 @@ export function listRepos(
 
   const repoIds = rows.map((row) => row.repo.id)
   const tagRows = repoIds.length
-    ? db
+    ? await db
         .select({ repoId: repoTags.repoId, tagId: tags.id, tagName: tags.name })
         .from(repoTags)
         .innerJoin(tags, eq(tags.id, repoTags.tagId))
-        .where(inArray(repoTags.repoId, repoIds))
+        .where(
+          and(inArray(repoTags.repoId, repoIds), eq(repoTags.userId, userId)),
+        )
         .all()
     : []
 
@@ -184,45 +205,55 @@ export function listRepos(
     tagsByRepoId.set(row.repoId, list)
   }
 
-  const items: RepoListItem[] = rows.map(({ repo, isFavorite, note }) => ({
-    id: repo.id,
-    fullName: repo.fullName,
-    name: repo.name,
-    ownerLogin: repo.ownerLogin,
-    ownerAvatar: repo.ownerAvatar,
-    description: repo.description,
-    htmlUrl: repo.htmlUrl,
-    language: repo.language,
-    topics: JSON.parse(repo.topics) as string[],
-    stargazersCount: repo.stargazersCount,
-    forksCount: repo.forksCount,
-    archived: repo.archived === 1,
-    fork: repo.fork === 1,
-    private: repo.private === 1,
-    isTemplate: repo.isTemplate === 1,
-    pushedAt: repo.pushedAt,
-    updatedAt: repo.updatedAt,
-    isOwned: repo.isOwned === 1,
-    isStarred: repo.isStarred === 1,
-    starredAt: repo.starredAt,
-    isFavorite: isFavorite === 1,
-    note,
-    tags: tagsByRepoId.get(repo.id) ?? [],
-  }))
+  const items: RepoListItem[] = rows.map(
+    ({ repo, userRepo, isFavorite, note }) => ({
+      id: repo.id,
+      fullName: repo.fullName,
+      name: repo.name,
+      ownerLogin: repo.ownerLogin,
+      ownerAvatar: repo.ownerAvatar,
+      description: repo.description,
+      htmlUrl: repo.htmlUrl,
+      language: repo.language,
+      topics: JSON.parse(repo.topics) as string[],
+      stargazersCount: repo.stargazersCount,
+      forksCount: repo.forksCount,
+      archived: repo.archived === 1,
+      fork: repo.fork === 1,
+      private: repo.private === 1,
+      isTemplate: repo.isTemplate === 1,
+      pushedAt: repo.pushedAt,
+      updatedAt: repo.updatedAt,
+      isOwned: userRepo.isOwned === 1,
+      isStarred: userRepo.isStarred === 1,
+      starredAt: userRepo.starredAt,
+      isFavorite: isFavorite === 1,
+      note,
+      tags: tagsByRepoId.get(repo.id) ?? [],
+    }),
+  )
 
   return { items, total, page, perPage }
 }
 
-export function listDistinctLanguages(
+export async function listDistinctLanguages(
   db: AppDatabase,
+  userId: number,
   source: RepoSource,
-): string[] {
+): Promise<string[]> {
   const sourceCondition =
-    source === "owned" ? eq(repos.isOwned, 1) : eq(repos.isStarred, 1)
-  const rows = db
+    source === "owned" ? eq(userRepos.isOwned, 1) : eq(userRepos.isStarred, 1)
+  const rows = await db
     .select({ language: repos.language })
     .from(repos)
-    .where(and(sourceCondition, sql`${repos.language} IS NOT NULL`))
+    .innerJoin(userRepos, eq(userRepos.repoId, repos.id))
+    .where(
+      and(
+        eq(userRepos.userId, userId),
+        sourceCondition,
+        sql`${repos.language} IS NOT NULL`,
+      ),
+    )
     .all()
   return [...new Set(rows.map((row) => row.language as string))].sort()
 }
@@ -232,30 +263,35 @@ export interface RepoSourceCounts {
   starred: number
 }
 
-export function countReposBySource(db: AppDatabase): RepoSourceCounts {
-  const owned = db
+export async function countReposBySource(
+  db: AppDatabase,
+  userId: number,
+): Promise<RepoSourceCounts> {
+  const owned = await db
     .select({ count: sql<number>`count(*)` })
-    .from(repos)
-    .where(eq(repos.isOwned, 1))
-    .get()!.count
-  const starred = db
+    .from(userRepos)
+    .where(and(eq(userRepos.userId, userId), eq(userRepos.isOwned, 1)))
+    .get()
+  const starred = await db
     .select({ count: sql<number>`count(*)` })
-    .from(repos)
-    .where(eq(repos.isStarred, 1))
-    .get()!.count
-  return { owned, starred }
+    .from(userRepos)
+    .where(and(eq(userRepos.userId, userId), eq(userRepos.isStarred, 1)))
+    .get()
+  return { owned: owned!.count, starred: starred!.count }
 }
 
-export function setStarred(
+export async function setStarred(
   db: AppDatabase,
+  userId: number,
   repoId: number,
   isStarred: boolean,
-): void {
-  db.update(repos)
+): Promise<void> {
+  await db
+    .update(userRepos)
     .set({
       isStarred: isStarred ? 1 : 0,
       starredAt: isStarred ? new Date().toISOString() : null,
     })
-    .where(eq(repos.id, repoId))
+    .where(and(eq(userRepos.userId, userId), eq(userRepos.repoId, repoId)))
     .run()
 }

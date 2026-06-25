@@ -777,7 +777,7 @@ EOF
 - Consumes: `repos`、`userRepos`、`repoUserData`、`repoTags`、`tags` from `./schema`。
 - Produces: `listRepos(db, userId, params): Promise<ListReposResult>`；`listDistinctLanguages(db, userId, source): Promise<string[]>`；`countReposBySource(db, userId): Promise<RepoSourceCounts>`；`setStarred(db, userId, repoId, isStarred): Promise<void>`。Task 7 依赖这四个新签名。
 
-- [ ] **Step 1: 改写测试**
+- [x] **Step 1: 改写测试**
 
 Modify `lib/db/repos.test.ts`（整个文件替换为）：
 
@@ -1219,12 +1219,12 @@ describe("setStarred", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run lib/db/repos.test.ts`
 Expected: FAIL（`listRepos` 等函数还是旧的两参数同步签名，且 `userRepos` 未被使用）。
 
-- [ ] **Step 3: 改写实现**
+- [x] **Step 3: 改写实现**
 
 Modify `lib/db/repos.ts`（整个文件替换为）：
 
@@ -1528,12 +1528,12 @@ export async function setStarred(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npx vitest run lib/db/repos.test.ts`
 Expected: 全部 PASS。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add lib/db/repos.ts lib/db/repos.test.ts

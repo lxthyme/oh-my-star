@@ -196,6 +196,7 @@ export default function RepoList({ source }: RepoListProps) {
             onChange={updatePage}
             showSizeChanger
             pageSizeOptions={[10, 20, 30, 50, 100]}
+            showTotal={(total) => `Total ${total} items`}
           />
         </div>
       )}

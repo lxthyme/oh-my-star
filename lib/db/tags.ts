@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { AppDatabase } from "./client"
 import { repoTags, tags } from "./schema"
 
@@ -7,51 +7,73 @@ export interface TagOption {
   name: string
 }
 
-export function listTags(db: AppDatabase): TagOption[] {
+export async function listTags(
+  db: AppDatabase,
+  userId: number,
+): Promise<TagOption[]> {
   return db
     .select({ id: tags.id, name: tags.name })
     .from(tags)
+    .where(eq(tags.userId, userId))
     .orderBy(tags.name)
     .all()
 }
 
-export function createTag(db: AppDatabase, name: string): TagOption {
-  const existing = db
+export async function createTag(
+  db: AppDatabase,
+  userId: number,
+  name: string,
+): Promise<TagOption> {
+  const existing = await db
     .select({ id: tags.id, name: tags.name })
     .from(tags)
-    .where(eq(tags.name, name))
+    .where(and(eq(tags.userId, userId), eq(tags.name, name)))
     .get()
   if (existing) return existing
 
   const now = new Date().toISOString()
-  const result = db.insert(tags).values({ name, createdAt: now }).run()
-  return { id: Number(result.lastInsertRowid), name }
+  const [inserted] = await db
+    .insert(tags)
+    .values({ userId, name, createdAt: now })
+    .returning({ id: tags.id })
+  return { id: inserted.id, name }
 }
 
-export function getRepoTags(db: AppDatabase, repoId: number): TagOption[] {
+export async function getRepoTags(
+  db: AppDatabase,
+  userId: number,
+  repoId: number,
+): Promise<TagOption[]> {
   return db
     .select({ id: tags.id, name: tags.name })
     .from(repoTags)
     .innerJoin(tags, eq(tags.id, repoTags.tagId))
-    .where(eq(repoTags.repoId, repoId))
+    .where(and(eq(repoTags.repoId, repoId), eq(repoTags.userId, userId)))
     .orderBy(tags.name)
     .all()
 }
 
-export function setRepoTags(
+export async function setRepoTags(
   db: AppDatabase,
+  userId: number,
   repoId: number,
   tagNames: string[],
-): TagOption[] {
+): Promise<TagOption[]> {
   const uniqueNames = [
     ...new Set(tagNames.map((name) => name.trim()).filter(Boolean)),
   ]
-  const resolved = uniqueNames.map((name) => createTag(db, name))
+  const resolved: TagOption[] = []
+  for (const name of uniqueNames) {
+    resolved.push(await createTag(db, userId, name))
+  }
 
-  db.transaction((tx) => {
-    tx.delete(repoTags).where(eq(repoTags.repoId, repoId)).run()
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(repoTags)
+      .where(and(eq(repoTags.repoId, repoId), eq(repoTags.userId, userId)))
+      .run()
     for (const tag of resolved) {
-      tx.insert(repoTags).values({ repoId, tagId: tag.id }).run()
+      await tx.insert(repoTags).values({ userId, repoId, tagId: tag.id }).run()
     }
   })
 

@@ -1555,7 +1555,7 @@ EOF
 **Interfaces:**
 - Produces: `listTags(db, userId): Promise<TagOption[]>`；`createTag(db, userId, name): Promise<TagOption>`；`getRepoTags(db, userId, repoId): Promise<TagOption[]>`；`setRepoTags(db, userId, repoId, tagNames): Promise<TagOption[]>`。Task 7 依赖这四个新签名。
 
-- [ ] **Step 1: 改写测试**
+- [x] **Step 1: 改写测试**
 
 Modify `lib/db/tags.test.ts`（整个文件替换为）：
 
@@ -1664,12 +1664,12 @@ describe("setRepoTags / getRepoTags", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run lib/db/tags.test.ts`
 Expected: FAIL（`createTag` 等函数还是旧的两参数同步签名）。
 
-- [ ] **Step 3: 改写实现**
+- [x] **Step 3: 改写实现**
 
 Modify `lib/db/tags.ts`（整个文件替换为）：
 
@@ -1757,12 +1757,12 @@ export async function setRepoTags(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npx vitest run lib/db/tags.test.ts`
 Expected: 全部 PASS。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add lib/db/tags.ts lib/db/tags.test.ts

@@ -1,0 +1,10 @@
+.next
+node_modules
+data
+*.zip
+docs/superpowers
+
+AGENTS.md
+CLAUDE.md
+.remember
+public

@@ -125,7 +125,7 @@ EOF
 **Interfaces:**
 - Produces: `isAllowedGitHubLogin(login: string | null | undefined, allowlist: string | undefined): boolean`，供 `auth.ts` 的 `signIn` 回调调用。
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 Create `lib/auth/allowlist.test.ts`:
 
@@ -160,12 +160,12 @@ describe("isAllowedGitHubLogin", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run lib/auth/allowlist.test.ts`
 Expected: FAIL，报错 `Cannot find module './allowlist'` 或类似（文件不存在）。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 Create `lib/auth/allowlist.ts`:
 
@@ -183,12 +183,12 @@ export function isAllowedGitHubLogin(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npx vitest run lib/auth/allowlist.test.ts`
 Expected: 5 个测试全部 PASS。
 
-- [ ] **Step 5: 接入 `auth.ts` 的 `signIn` 回调**
+- [x] **Step 5: 接入 `auth.ts` 的 `signIn` 回调**
 
 Modify `auth.ts`:
 
@@ -212,7 +212,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 })
 ```
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add lib/auth/allowlist.ts lib/auth/allowlist.test.ts auth.ts

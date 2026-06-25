@@ -1,40 +1,51 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { AppDatabase } from "./client"
 import { repoUserData } from "./schema"
 
-export function setFavorite(
+export async function setFavorite(
   db: AppDatabase,
+  userId: number,
   repoId: number,
   isFavorite: boolean,
-): void {
-  db.insert(repoUserData)
-    .values({ repoId, isFavorite: isFavorite ? 1 : 0 })
+): Promise<void> {
+  await db
+    .insert(repoUserData)
+    .values({ userId, repoId, isFavorite: isFavorite ? 1 : 0 })
     .onConflictDoUpdate({
-      target: repoUserData.repoId,
+      target: [repoUserData.userId, repoUserData.repoId],
       set: { isFavorite: isFavorite ? 1 : 0 },
     })
     .run()
 }
 
-export function setNote(db: AppDatabase, repoId: number, note: string): void {
+export async function setNote(
+  db: AppDatabase,
+  userId: number,
+  repoId: number,
+  note: string,
+): Promise<void> {
   const now = new Date().toISOString()
-  db.insert(repoUserData)
-    .values({ repoId, note, noteUpdatedAt: now })
+  await db
+    .insert(repoUserData)
+    .values({ userId, repoId, note, noteUpdatedAt: now })
     .onConflictDoUpdate({
-      target: repoUserData.repoId,
+      target: [repoUserData.userId, repoUserData.repoId],
       set: { note, noteUpdatedAt: now },
     })
     .run()
 }
 
-export function getUserData(
+export async function getUserData(
   db: AppDatabase,
+  userId: number,
   repoId: number,
-): { isFavorite: boolean; note: string | null } {
-  const row = db
+): Promise<{ isFavorite: boolean; note: string | null }> {
+  const row = await db
     .select()
     .from(repoUserData)
-    .where(eq(repoUserData.repoId, repoId))
+    .where(
+      and(eq(repoUserData.userId, userId), eq(repoUserData.repoId, repoId)),
+    )
     .get()
   return {
     isFavorite: row?.isFavorite === 1,

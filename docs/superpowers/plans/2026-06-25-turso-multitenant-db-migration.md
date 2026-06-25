@@ -1784,7 +1784,7 @@ EOF
 **Interfaces:**
 - Produces: `setFavorite(db, userId, repoId, isFavorite): Promise<void>`；`setNote(db, userId, repoId, note): Promise<void>`；`getUserData(db, userId, repoId): Promise<{isFavorite, note}>`。Task 7 依赖这三个新签名。
 
-- [ ] **Step 1: 改写测试**
+- [x] **Step 1: 改写测试**
 
 Modify `lib/db/user-data.test.ts`（整个文件替换为）：
 
@@ -1880,12 +1880,12 @@ describe("getUserData", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run lib/db/user-data.test.ts`
 Expected: FAIL（`setFavorite` 等函数还是旧的两参数同步签名）。
 
-- [ ] **Step 3: 改写实现**
+- [x] **Step 3: 改写实现**
 
 Modify `lib/db/user-data.ts`（整个文件替换为）：
 
@@ -1946,17 +1946,17 @@ export async function getUserData(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npx vitest run lib/db/user-data.test.ts`
 Expected: 全部 PASS。
 
-- [ ] **Step 5: 全量回归**
+- [x] **Step 5: 全量回归**
 
 Run: `npm test && npx tsc --noEmit 2>&1 | grep -E "^lib/db"`
 Expected: `npm test` 全部 PASS；第二条命令对 `lib/db/*` 路径无输出（Task 2-6 涉及的库文件已无类型错误；`app/api/**` 的类型错误属于 Task 7 范围，预期此时仍存在）。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add lib/db/user-data.ts lib/db/user-data.test.ts

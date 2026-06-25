@@ -234,7 +234,7 @@ EOF
 **Interfaces:**
 - Produces: `session.accessToken: string`、`session.userId: number`（登录用户的 GitHub 数字 id），后续 Task 6 及未来的多租户计划据此调 GitHub API / 写数据库。
 
-- [ ] **Step 1: 扩展 Session/JWT 类型**
+- [x] **Step 1: 扩展 Session/JWT 类型**
 
 Modify `lib/auth/types.d.ts`:
 
@@ -256,7 +256,7 @@ declare module "next-auth/jwt" {
 }
 ```
 
-- [ ] **Step 2: 在 `jwt`/`session` 回调中写入这两个字段**
+- [x] **Step 2: 在 `jwt`/`session` 回调中写入这两个字段**
 
 Modify `auth.ts`（在 `callbacks` 对象内，`signIn` 之后追加）：
 
@@ -275,12 +275,12 @@ Modify `auth.ts`（在 `callbacks` 对象内，`signIn` 之后追加）：
     },
 ```
 
-- [ ] **Step 3: 类型检查**
+- [x] **Step 3: 类型检查**
 
 Run: `npx tsc --noEmit`
 Expected: 无输出（无错误）。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add auth.ts lib/auth/types.d.ts

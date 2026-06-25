@@ -1,6 +1,6 @@
-import { sql } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import type { AppDatabase } from "./client"
-import { repos } from "./schema"
+import { repos, userRepos } from "./schema"
 import type { GitHubRepoData, StarredRepoData } from "../github"
 
 export interface SyncInput {
@@ -20,7 +20,11 @@ interface MergedEntry {
   starredAt: string | null
 }
 
-export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
+export async function syncRepos(
+  db: AppDatabase,
+  userId: number,
+  input: SyncInput,
+): Promise<SyncResult> {
   const merged = new Map<number, MergedEntry>()
 
   for (const repo of input.owned) {
@@ -43,11 +47,15 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
 
   const now = new Date().toISOString()
 
-  db.transaction((tx) => {
-    tx.update(repos).set({ isOwned: 0, isStarred: 0, starredAt: null }).run()
+  await db.transaction(async (tx) => {
+    await tx
+      .update(userRepos)
+      .set({ isOwned: 0, isStarred: 0, starredAt: null })
+      .where(eq(userRepos.userId, userId))
+      .run()
 
     for (const entry of merged.values()) {
-      const values = {
+      const repoValues = {
         id: entry.repo.id,
         fullName: entry.repo.fullName,
         name: entry.repo.name,
@@ -67,15 +75,30 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
         pushedAt: entry.repo.pushedAt,
         updatedAt: entry.repo.updatedAt,
         createdAt: entry.repo.createdAt,
+      }
+
+      await tx
+        .insert(repos)
+        .values(repoValues)
+        .onConflictDoUpdate({ target: repos.id, set: repoValues })
+        .run()
+
+      const userRepoValues = {
+        userId,
+        repoId: entry.repo.id,
         isOwned: entry.isOwned ? 1 : 0,
         isStarred: entry.isStarred ? 1 : 0,
         starredAt: entry.starredAt,
         syncedAt: now,
       }
 
-      tx.insert(repos)
-        .values(values)
-        .onConflictDoUpdate({ target: repos.id, set: values })
+      await tx
+        .insert(userRepos)
+        .values(userRepoValues)
+        .onConflictDoUpdate({
+          target: [userRepos.userId, userRepos.repoId],
+          set: userRepoValues,
+        })
         .run()
     }
   })
@@ -83,9 +106,14 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
   return { ownedCount: input.owned.length, starredCount: input.starred.length }
 }
 
-export function getLastSyncedAt(db: AppDatabase): string | null {
-  return db
-    .select({ lastSyncedAt: sql<string | null>`MAX(${repos.syncedAt})` })
-    .from(repos)
-    .get()!.lastSyncedAt
+export async function getLastSyncedAt(
+  db: AppDatabase,
+  userId: number,
+): Promise<string | null> {
+  const row = await db
+    .select({ lastSyncedAt: sql<string | null>`MAX(${userRepos.syncedAt})` })
+    .from(userRepos)
+    .where(eq(userRepos.userId, userId))
+    .get()
+  return row!.lastSyncedAt
 }

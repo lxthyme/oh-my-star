@@ -369,7 +369,7 @@ EOF
 - Consumes: `repos`、`userRepos` from `./schema`（Task 2 produced）。
 - Produces: `syncRepos(db: AppDatabase, userId: number, input: SyncInput): Promise<SyncResult>`；`getLastSyncedAt(db: AppDatabase, userId: number): Promise<string | null>`。后续 Task 7（路由接入）依赖这两个新签名。
 
-- [ ] **Step 1: 改写测试**
+- [x] **Step 1: 改写测试**
 
 Modify `lib/db/sync.test.ts`（整个文件替换为）：
 
@@ -618,12 +618,12 @@ describe("getLastSyncedAt", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run lib/db/sync.test.ts`
 Expected: FAIL（`syncRepos`/`getLastSyncedAt` 还是旧的两参数同步签名）。
 
-- [ ] **Step 3: 改写实现**
+- [x] **Step 3: 改写实现**
 
 Modify `lib/db/sync.ts`（整个文件替换为）：
 
@@ -749,12 +749,12 @@ export async function getLastSyncedAt(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npx vitest run lib/db/sync.test.ts`
 Expected: 全部 PASS。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add lib/db/sync.ts lib/db/sync.test.ts

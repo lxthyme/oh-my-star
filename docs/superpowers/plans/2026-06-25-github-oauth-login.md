@@ -50,13 +50,13 @@
 **Interfaces:**
 - Produces: `auth.ts` 导出 `{ handlers, auth, signIn, signOut }`（Auth.js v5 标准导出），后续所有任务通过 `import { auth } from "@/auth"` 使用。
 
-- [ ] **Step 1: 安装依赖**
+- [x] **Step 1: 安装依赖**
 
 Run: `npm install next-auth@beta`
 
 Expected: `package.json` 的 `dependencies` 出现 `"next-auth": "^5.0.0-beta.xx"`。
 
-- [ ] **Step 2: 创建最小 Auth.js 配置（暂不加白名单/token 回调，留给 Task 2、Task 3）**
+- [x] **Step 2: 创建最小 Auth.js 配置（暂不加白名单/token 回调，留给 Task 2、Task 3）**
 
 Create `auth.ts`:
 
@@ -71,7 +71,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 })
 ```
 
-- [ ] **Step 3: 创建 Auth.js 的 Route Handler**
+- [x] **Step 3: 创建 Auth.js 的 Route Handler**
 
 Create `app/api/auth/[...nextauth]/route.ts`:
 
@@ -81,7 +81,7 @@ import { handlers } from "@/auth"
 export const { GET, POST } = handlers
 ```
 
-- [ ] **Step 4: 创建 Session 类型占位文件（Task 3 会补充字段，这里先建立文件防止后续任务找不到扩展点）**
+- [x] **Step 4: 创建 Session 类型占位文件（Task 3 会补充字段，这里先建立文件防止后续任务找不到扩展点）**
 
 Create `lib/auth/types.d.ts`:
 
@@ -97,12 +97,12 @@ declare module "next-auth/jwt" {
 }
 ```
 
-- [ ] **Step 5: 类型检查确认无编译错误**
+- [x] **Step 5: 类型检查确认无编译错误**
 
 Run: `npx tsc --noEmit`
 Expected: 无输出（无错误）。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add package.json package-lock.json auth.ts "app/api/auth/[...nextauth]/route.ts" lib/auth/types.d.ts

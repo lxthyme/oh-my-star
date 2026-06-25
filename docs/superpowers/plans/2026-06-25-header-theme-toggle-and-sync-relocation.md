@@ -28,7 +28,7 @@
 **Interfaces:**
 - Produces: `getLastSyncedAt(db: AppDatabase): string | null`（导出自 `lib/db/sync.ts`），`GET /api/sync` → `{ lastSyncedAt: string | null }`。Task 5（`SyncContext`）会调用这个 GET 接口。
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 在 `lib/db/sync.test.ts` 末尾（`describe("syncRepos", ...)` 闭合的 `})` 之后）新增：
 
@@ -63,12 +63,12 @@ import { syncRepos, getLastSyncedAt } from "./sync"
 import type { GitHubRepoData } from "../github"
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run lib/db/sync.test.ts`
 Expected: FAIL —— `getLastSyncedAt` 未定义（`lib/db/sync.ts` 还没导出它）。
 
-- [ ] **Step 3: 实现 `getLastSyncedAt`**
+- [x] **Step 3: 实现 `getLastSyncedAt`**
 
 在 `lib/db/sync.ts` 顶部 import 中加入 `sql`：
 
@@ -87,12 +87,12 @@ export function getLastSyncedAt(db: AppDatabase): string | null {
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npx vitest run lib/db/sync.test.ts`
 Expected: PASS（全部用例，包括新增的 2 个）。
 
-- [ ] **Step 5: 新增 GET handler**
+- [x] **Step 5: 新增 GET handler**
 
 把 `app/api/sync/route.ts` 改为：
 
@@ -133,12 +133,12 @@ export async function POST() {
 
 （仅在原文件基础上新增 `GET` 函数和 `getLastSyncedAt` import，`POST` 函数体不变。）
 
-- [ ] **Step 6: 全量跑一次测试确认没有破坏其他用例**
+- [x] **Step 6: 全量跑一次测试确认没有破坏其他用例**
 
 Run: `npx vitest run`
 Expected: PASS（全部测试文件）。
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/db/sync.ts lib/db/sync.test.ts app/api/sync/route.ts
@@ -156,7 +156,7 @@ git commit -m "feat: 新增 GET /api/sync 返回上次同步时间"
 **Interfaces:**
 - Produces: `type ThemeMode = "light" | "dark" | "system"`，`THEME_STORAGE_KEY: string`，`resolveTheme(mode: ThemeMode, prefersDark: boolean): "light" | "dark"`，`THEME_INLINE_SCRIPT: string`。Task 3（`layout.tsx`）消费 `THEME_INLINE_SCRIPT`；Task 4（`AppShell.tsx`）消费 `ThemeMode`、`THEME_STORAGE_KEY`、`resolveTheme`。
 
-- [ ] **Step 1: 写失败的测试**
+- [x] **Step 1: 写失败的测试**
 
 创建 `app/lib/theme.test.ts`：
 
@@ -182,12 +182,12 @@ describe("resolveTheme", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run app/lib/theme.test.ts`
 Expected: FAIL —— 找不到模块 `./theme`。
 
-- [ ] **Step 3: 实现 `app/lib/theme.ts`**
+- [x] **Step 3: 实现 `app/lib/theme.ts`**
 
 ```ts
 export type ThemeMode = "light" | "dark" | "system"
@@ -204,12 +204,12 @@ export function resolveTheme(mode: ThemeMode, prefersDark: boolean): "light" | "
 export const THEME_INLINE_SCRIPT = `(function(){try{var stored=localStorage.getItem("${THEME_STORAGE_KEY}");var dark=stored==="dark"||(stored!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",dark?"dark":"light")}catch(e){}})()`
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `npx vitest run app/lib/theme.test.ts`
 Expected: PASS。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/lib/theme.ts app/lib/theme.test.ts
@@ -228,7 +228,7 @@ git commit -m "feat: 新增主题三态解析逻辑 resolveTheme"
 - Consumes: `THEME_INLINE_SCRIPT`（来自 Task 2 的 `app/lib/theme.ts`）。
 - Produces: `<html data-theme>` 属性机制 + `[data-theme='dark']` CSS 选择器，供 Task 4 的 `useThemeMode` 在客户端继续更新同一个属性。
 
-- [ ] **Step 1: 修改 `app/layout.tsx`**
+- [x] **Step 1: 修改 `app/layout.tsx`**
 
 把整个文件改为：
 
@@ -267,7 +267,7 @@ const RootLayout = ({ children }: React.PropsWithChildren) => (
 export default RootLayout
 ```
 
-- [ ] **Step 2: 修改 `app/globals.css`**
+- [x] **Step 2: 修改 `app/globals.css`**
 
 把：
 
@@ -289,13 +289,13 @@ html[data-theme="dark"] {
 }
 ```
 
-- [ ] **Step 3: 手动验证（无自动化测试覆盖标记/CSS，先做最小验证，完整验证见 Task 8）**
+- [x] **Step 3: 手动验证（无自动化测试覆盖标记/CSS，先做最小验证，完整验证见 Task 8）**
 
 Run: `npm run dev`
 
 打开 `http://localhost:6602/repos`，浏览器 devtools → Application → Local Storage，手动设置 `theme = dark`，刷新页面：背景应立即是暗色（无闪烁、无白屏闪一下）。删除该 key 后再刷新应恢复跟随系统。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/layout.tsx app/globals.css
@@ -313,7 +313,7 @@ git commit -m "feat: 主题闪烁防护接入 data-theme + inline script"
 - Consumes: `ThemeMode`、`THEME_STORAGE_KEY`、`resolveTheme`（来自 Task 2）；依赖 Task 3 建立的 `data-theme` 属性机制。
 - Produces: 头部新增主题 `Dropdown` 按钮；`isDark` 继续驱动 `ConfigProvider` 的 `algorithm`（替换原 `useIsDarkMode`）。
 
-- [ ] **Step 1: 替换 `useIsDarkMode`，新增 `useThemeMode`**
+- [x] **Step 1: 替换 `useIsDarkMode`，新增 `useThemeMode`**
 
 把 `app/components/AppShell.tsx` 顶部的 import 改为：
 
@@ -380,7 +380,7 @@ function useThemeMode() {
 }
 ```
 
-- [ ] **Step 2: 在组件内使用新 hook，并渲染主题按钮**
+- [x] **Step 2: 在组件内使用新 hook，并渲染主题按钮**
 
 把 `export default function AppShell` 函数体的开头：
 
@@ -425,7 +425,7 @@ export default function AppShell({ children }: React.PropsWithChildren) {
           </Dropdown>
 ```
 
-- [ ] **Step 3: 手动验证**
+- [x] **Step 3: 手动验证**
 
 Run: `npm run dev`
 
@@ -435,7 +435,7 @@ Run: `npm run dev`
 - 刷新页面后选择应保持（亮色/暗色持久化；跟随系统则恢复系统当前偏好）。
 - DevTools 中 `<html>` 的 `data-theme` 属性应与所选一致。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/components/AppShell.tsx
@@ -453,7 +453,7 @@ git commit -m "feat: 顶部菜单新增三态主题切换按钮"
 - Consumes: `GET /api/sync`（Task 1）、既有的 `POST /api/sync`。
 - Produces: `SyncProvider`（组件）、`useSync(): { lastSyncedAt: string | null; syncing: boolean; syncVersion: number; triggerSync: () => Promise<void> }`。Task 6（`AppShell.tsx`）与 Task 7（`RepoList.tsx`）都消费 `useSync()`。
 
-- [ ] **Step 1: 实现 `SyncContext.tsx`**
+- [x] **Step 1: 实现 `SyncContext.tsx`**
 
 创建 `app/components/SyncContext.tsx`：
 
@@ -514,12 +514,12 @@ export function useSync(): SyncState {
 }
 ```
 
-- [ ] **Step 2: 类型检查（暂未接线，先确认无 TS 报错）**
+- [x] **Step 2: 类型检查（暂未接线，先确认无 TS 报错）**
 
 Run: `npx tsc --noEmit`
 Expected: 无新增报错（此时 `SyncProvider` 尚未被引用，是预期的"未使用 export"，TS 不会因此报错）。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/components/SyncContext.tsx
@@ -537,7 +537,7 @@ git commit -m "feat: 新增 SyncContext 管理全局同步状态"
 - Consumes: `SyncProvider`、`useSync`（Task 5）。
 - Produces: 头部内同步图标按钮 + 上次同步时间文本；整个 `<Layout>` 包裹在 `SyncProvider` 内，供 Task 7 的 `RepoList`（作为 `children` 的后代）消费。
 
-- [ ] **Step 1: import 新增依赖**
+- [x] **Step 1: import 新增依赖**
 
 在 `app/components/AppShell.tsx` 顶部 import 中追加：
 
@@ -549,7 +549,7 @@ import { SyncProvider, useSync } from "./SyncContext"
 
 （`Dropdown`、`Layout`、`Menu`、`theme` 等已在 Task 4 中 import，无需重复添加。）
 
-- [ ] **Step 2: 新增格式化时间的小函数 + 头部子组件**
+- [x] **Step 2: 新增格式化时间的小函数 + 头部子组件**
 
 在 `useThemeMode` 函数之后、`export default function AppShell` 之前新增：
 
@@ -579,7 +579,7 @@ function SyncButton() {
 }
 ```
 
-- [ ] **Step 3: 用 `SyncProvider` 包裹 `Layout`，并渲染 `SyncButton`**
+- [x] **Step 3: 用 `SyncProvider` 包裹 `Layout`，并渲染 `SyncButton`**
 
 把 `return` 语句中的 `<Layout>` 整体包一层 `<SyncProvider>`：
 
@@ -656,7 +656,7 @@ function SyncButton() {
 
 （即：在 `<Menu />` 和 `<Dropdown>` 主题按钮之间插入 `<SyncButton />`；整个 `<Layout>` 套进新增的 `<SyncProvider>`。）
 
-- [ ] **Step 4: 手动验证**
+- [x] **Step 4: 手动验证**
 
 Run: `npm run dev`
 
@@ -666,7 +666,7 @@ Run: `npm run dev`
 - 点击同步图标：图标旋转，完成后 toast 提示，文本更新为当前时间。
 - 切到 `http://localhost:6602/stars`，确认头部同步状态（文本/图标）是同一份全局状态，不会因为切页面重置。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/components/AppShell.tsx
@@ -683,7 +683,7 @@ git commit -m "feat: 顶部菜单接入同步按钮与上次同步时间"
 **Interfaces:**
 - Consumes: `useSync()`（Task 5），只用其 `syncVersion` 字段。
 
-- [ ] **Step 1: 精简 import，移除本地同步状态**
+- [x] **Step 1: 精简 import，移除本地同步状态**
 
 把文件顶部 import 由：
 
@@ -711,7 +711,7 @@ import { useSync } from "./SyncContext"
   const [syncing, setSyncing] = useState(false)
 ```
 
-- [ ] **Step 2: `fetchRepos` 依赖 `syncVersion`，删除 `handleSync`**
+- [x] **Step 2: `fetchRepos` 依赖 `syncVersion`，删除 `handleSync`**
 
 在组件函数体内、`fetchRepos` 定义之前新增：
 
@@ -751,7 +751,7 @@ import { useSync } from "./SyncContext"
   }
 ```
 
-- [ ] **Step 3: 简化渲染部分，移除同步按钮**
+- [x] **Step 3: 简化渲染部分，移除同步按钮**
 
 把：
 
@@ -795,18 +795,18 @@ import { useSync } from "./SyncContext"
 
 （下方仓库卡片栅格仍使用 `Row`/`Col`，因此顶部 import 里这两个标识符继续保留，只移除了 `Button`。）
 
-- [ ] **Step 4: 类型检查 + 跑测试**
+- [x] **Step 4: 类型检查 + 跑测试**
 
 Run: `npx tsc --noEmit && npx vitest run`
 Expected: 无报错，全部测试 PASS（`RepoList.tsx` 本身没有自动化测试，这一步主要确认没有破坏其他文件的类型/测试）。
 
-- [ ] **Step 5: 手动验证**
+- [x] **Step 5: 手动验证**
 
 Run: `npm run dev`
 
 打开 `http://localhost:6602/repos`：列表区域上方不再有"同步"按钮；筛选栏占满整行。在顶部菜单点击同步图标，完成后当前列表应自动刷新（可通过同步前后仓库的 `updated_at`/数量变化确认，或临时在 GitHub 上 star/unstar 一个仓库后同步验证）。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/components/RepoList.tsx
@@ -819,11 +819,11 @@ git commit -m "refactor: RepoList 移除本地同步逻辑，改用全局 SyncCo
 
 **Files:** 无代码改动，仅验证。
 
-- [ ] **Step 1: 启动 dev server**
+- [x] **Step 1: 启动 dev server**
 
 Run: `npm run dev`（端口 6602）
 
-- [ ] **Step 2: 主题三态完整走一遍**
+- [x] **Step 2: 主题三态完整走一遍**
 
 打开 `http://localhost:6602/repos`：
 
@@ -831,26 +831,42 @@ Run: `npm run dev`（端口 6602）
 2. 选"亮色" → 立即变亮；刷新 → 仍是亮色。
 3. 选"跟随系统" → 跟随 macOS 当前外观设置；在系统设置里切换系统的亮/暗模式 → 页面应跟着实时变化（不需要手动刷新，因为 `matchMedia` 的 `change` 监听仍然生效）。
 
-- [ ] **Step 3: 同步 + 上次同步时间走一遍**
+- [x] **Step 3: 同步 + 上次同步时间走一遍**
 
 1. 头部应显示"上次同步：MM-DD HH:mm"（如果本机数据库此前从未同步过，先点一次同步按钮产生数据）。
 2. 点击同步图标 → 旋转动画 → 完成后 toast 提示 `同步完成：owned N / starred M` → 时间文本更新为当前时间。
 3. 切换到 `http://localhost:6602/stars` → 头部时间与 `/repos` 页一致（全局状态，不因路由切换重置）。
 4. 在 `/stars` 页面点击同步 → 列表应自动刷新（不需要手动刷新浏览器）。
 
-- [ ] **Step 4: 移动端宽度检查**
+- [x] **Step 4: 移动端宽度检查**
 
 浏览器开发者工具切换到手机视口（如 iPhone 12，390px 宽）：
 
 - 头部 logo + 导航 + 同步图标 + 主题图标不应互相挤压换行或溢出（"上次同步"文字应已隐藏，只剩图标）。
 - `/repos`、`/stars` 页面筛选栏与卡片栅格仍正常单列显示（这部分来自此前的移动端适配工作，本次改动不应破坏它）。
 
-- [ ] **Step 5: 全量测试 + 类型检查收尾**
+- [x] **Step 5: 全量测试 + 类型检查收尾**
 
 Run: `npx tsc --noEmit && npx vitest run && npm run lint`
 Expected: 全部通过，无报错。
 
-- [ ] **Step 6: 确认无遗留 commit**
+- [x] **Step 6: 确认无遗留 commit**
 
 Run: `git status`
 Expected: working tree clean（前面每个 Task 已分别 commit）。
+
+---
+
+## 执行总结
+
+8 个任务全部完成，按 Task 顺序逐一提交（`7b2fdf7`..`30e8f82`）。
+
+- Task 1-7 的自动化测试覆盖（`getLastSyncedAt`、`resolveTheme`）按计划全部通过；`npx tsc --noEmit`、`npx vitest run`（43 个测试全绿）、`npm run lint`（0 error）均在收尾阶段确认。
+- React 组件改动（主题三态切换、同步按钮、跨页面状态、移动端布局）因项目无 jsdom/Testing Library，按计划用 Playwright + 本机已安装 Chrome（`executablePath` 指向 `/Applications/Application/Google Chrome.app`）做了真实交互验证，而非仅查代码：
+  - 主题三态：点击切换、`data-theme`/`localStorage` 同步、刷新后持久化、"跟随系统"正确清除 localStorage，全部符合预期。
+  - 同步按钮：点击触发真实 `POST /api/sync`（对接真实 GitHub Token，单次约 20-30s），成功后"上次同步"文本立即更新，且跨 `/repos` ↔ `/stars` 路由保持同一全局状态。
+  - 移动端 390px 视口：头部单行无溢出，"上次同步"文字按 `hidden sm:inline` 正确隐藏，图标按钮均可点击。
+- lint 收尾阶段发现并修复了计划外的 2 个小问题（均已按 Task 8 Step 5 的收尾检查处理，随手清理而非新增 Task）：
+  - `AppShell.tsx` 中一处多余的 `eslint-disable-next-line react-hooks/set-state-in-effect`（该行实际未被规则命中）。
+  - `RepoList.tsx` 中 `syncVersion` 作为"刷新信号"未在 `fetchRepos` 函数体内被引用，被 `react-hooks/exhaustive-deps` 误报，补充注释 + 行内禁用说明意图。
+- 已知的、非本次引入的遗留问题（不在本次范围内，未处理）：`SyncContext.tsx` 内的 `message.success/error` 是 antd 静态调用，不经过 `ConfigProvider` 的 `dynamic theme` 上下文，深色模式下 toast 可能不跟随暗色样式（控制台会有 `antd: message` 警告）。这个行为在原 `RepoList.tsx` 里已经存在（同样用静态 `message`），本次只是原样迁移，未引入新问题，修复需要引入 antd `App` 组件包裹，超出本次需求范围。

@@ -11,21 +11,23 @@ describe("listRepos", () => {
     db = createDb(":memory:")
   })
 
-  function insertRepo(overrides: Partial<{
-    id: number
-    name: string
-    fullName: string
-    language: string | null
-    fork: number
-    archived: number
-    isTemplate: number
-    mirrorUrl: string | null
-    isOwned: number
-    isStarred: number
-    starredAt: string | null
-    stargazersCount: number
-    pushedAt: string | null
-  }> = {}) {
+  function insertRepo(
+    overrides: Partial<{
+      id: number
+      name: string
+      fullName: string
+      language: string | null
+      fork: number
+      archived: number
+      isTemplate: number
+      mirrorUrl: string | null
+      isOwned: number
+      isStarred: number
+      starredAt: string | null
+      stargazersCount: number
+      pushedAt: string | null
+    }> = {},
+  ) {
     const repo = {
       id: 1,
       name: "Hello-World",
@@ -45,22 +47,37 @@ describe("listRepos", () => {
     db.run(
       sql.raw(
         `INSERT INTO repos (id, full_name, name, owner_login, html_url, language, fork, archived, is_template, mirror_url, is_owned, is_starred, starred_at, stargazers_count, pushed_at)
-         VALUES (${repo.id}, '${repo.fullName}', '${repo.name}', 'octocat', 'https://github.com/${repo.fullName}', ${repo.language ? `'${repo.language}'` : "NULL"}, ${repo.fork}, ${repo.archived}, ${repo.isTemplate}, ${repo.mirrorUrl ? `'${repo.mirrorUrl}'` : "NULL"}, ${repo.isOwned}, ${repo.isStarred}, ${repo.starredAt ? `'${repo.starredAt}'` : "NULL"}, ${repo.stargazersCount}, '${repo.pushedAt}')`
-      )
+         VALUES (${repo.id}, '${repo.fullName}', '${repo.name}', 'octocat', 'https://github.com/${repo.fullName}', ${repo.language ? `'${repo.language}'` : "NULL"}, ${repo.fork}, ${repo.archived}, ${repo.isTemplate}, ${repo.mirrorUrl ? `'${repo.mirrorUrl}'` : "NULL"}, ${repo.isOwned}, ${repo.isStarred}, ${repo.starredAt ? `'${repo.starredAt}'` : "NULL"}, ${repo.stargazersCount}, '${repo.pushedAt}')`,
+      ),
     )
   }
 
   it("filters by source (owned vs starred)", () => {
     insertRepo({ id: 1, isOwned: 1, isStarred: 0 })
-    insertRepo({ id: 2, fullName: "octocat/Spoon-Knife", name: "Spoon-Knife", isOwned: 0, isStarred: 1 })
+    insertRepo({
+      id: 2,
+      fullName: "octocat/Spoon-Knife",
+      name: "Spoon-Knife",
+      isOwned: 0,
+      isStarred: 1,
+    })
 
-    expect(listRepos(db, { source: "owned" }).items.map((r) => r.id)).toEqual([1])
-    expect(listRepos(db, { source: "starred" }).items.map((r) => r.id)).toEqual([2])
+    expect(listRepos(db, { source: "owned" }).items.map((r) => r.id)).toEqual([
+      1,
+    ])
+    expect(listRepos(db, { source: "starred" }).items.map((r) => r.id)).toEqual(
+      [2],
+    )
   })
 
   it("filters by type=forks", () => {
     insertRepo({ id: 1, fork: 0 })
-    insertRepo({ id: 2, fullName: "octocat/Spoon-Knife", name: "Spoon-Knife", fork: 1 })
+    insertRepo({
+      id: 2,
+      fullName: "octocat/Spoon-Knife",
+      name: "Spoon-Knife",
+      fork: 1,
+    })
 
     const result = listRepos(db, { source: "owned", type: "forks" })
     expect(result.items.map((r) => r.id)).toEqual([2])
@@ -77,7 +94,12 @@ describe("listRepos", () => {
 
   it("filters by type=mirrors", () => {
     insertRepo({ id: 1 })
-    insertRepo({ id: 2, fullName: "octocat/Mirror", name: "Mirror", mirrorUrl: "https://git.example.com/x.git" })
+    insertRepo({
+      id: 2,
+      fullName: "octocat/Mirror",
+      name: "Mirror",
+      mirrorUrl: "https://git.example.com/x.git",
+    })
 
     const result = listRepos(db, { source: "owned", type: "mirrors" })
     expect(result.items.map((r) => r.id)).toEqual([2])
@@ -85,7 +107,12 @@ describe("listRepos", () => {
 
   it("ignores language filter when set to 'all'", () => {
     insertRepo({ id: 1, language: "TypeScript" })
-    insertRepo({ id: 2, fullName: "octocat/Py", name: "Py", language: "Python" })
+    insertRepo({
+      id: 2,
+      fullName: "octocat/Py",
+      name: "Py",
+      language: "Python",
+    })
 
     const result = listRepos(db, { source: "owned", language: "all" })
     expect(result.items).toHaveLength(2)
@@ -93,7 +120,12 @@ describe("listRepos", () => {
 
   it("filters by a specific language", () => {
     insertRepo({ id: 1, language: "TypeScript" })
-    insertRepo({ id: 2, fullName: "octocat/Py", name: "Py", language: "Python" })
+    insertRepo({
+      id: 2,
+      fullName: "octocat/Py",
+      name: "Py",
+      language: "Python",
+    })
 
     const result = listRepos(db, { source: "owned", language: "Python" })
     expect(result.items.map((r) => r.id)).toEqual([2])
@@ -104,8 +136,16 @@ describe("listRepos", () => {
     insertRepo({ id: 2, fullName: "octocat/Spoon-Knife", name: "Spoon-Knife" })
     db.insert(repoUserData).values({ repoId: 1, isFavorite: 1 }).run()
 
-    expect(listRepos(db, { source: "owned", favorite: "favorite" }).items.map((r) => r.id)).toEqual([1])
-    expect(listRepos(db, { source: "owned", favorite: "not_favorite" }).items.map((r) => r.id)).toEqual([2])
+    expect(
+      listRepos(db, { source: "owned", favorite: "favorite" }).items.map(
+        (r) => r.id,
+      ),
+    ).toEqual([1])
+    expect(
+      listRepos(db, { source: "owned", favorite: "not_favorite" }).items.map(
+        (r) => r.id,
+      ),
+    ).toEqual([2])
   })
 
   it("filters by note status using repo_user_data", () => {
@@ -113,23 +153,39 @@ describe("listRepos", () => {
     insertRepo({ id: 2, fullName: "octocat/Spoon-Knife", name: "Spoon-Knife" })
     db.insert(repoUserData).values({ repoId: 1, note: "记得看看" }).run()
 
-    expect(listRepos(db, { source: "owned", note: "noted" }).items.map((r) => r.id)).toEqual([1])
-    expect(listRepos(db, { source: "owned", note: "not_noted" }).items.map((r) => r.id)).toEqual([2])
+    expect(
+      listRepos(db, { source: "owned", note: "noted" }).items.map((r) => r.id),
+    ).toEqual([1])
+    expect(
+      listRepos(db, { source: "owned", note: "not_noted" }).items.map(
+        (r) => r.id,
+      ),
+    ).toEqual([2])
   })
 
   it("filters by tagId and by 'untagged'", () => {
     insertRepo({ id: 1 })
     insertRepo({ id: 2, fullName: "octocat/Spoon-Knife", name: "Spoon-Knife" })
-    db.insert(tags).values({ id: 1, name: "cli", createdAt: "2026-01-01T00:00:00Z" }).run()
+    db.insert(tags)
+      .values({ id: 1, name: "cli", createdAt: "2026-01-01T00:00:00Z" })
+      .run()
     db.insert(repoTags).values({ repoId: 1, tagId: 1 }).run()
 
-    expect(listRepos(db, { source: "owned", tagId: 1 }).items.map((r) => r.id)).toEqual([1])
-    expect(listRepos(db, { source: "owned", tagId: "untagged" }).items.map((r) => r.id)).toEqual([2])
+    expect(
+      listRepos(db, { source: "owned", tagId: 1 }).items.map((r) => r.id),
+    ).toEqual([1])
+    expect(
+      listRepos(db, { source: "owned", tagId: "untagged" }).items.map(
+        (r) => r.id,
+      ),
+    ).toEqual([2])
   })
 
   it("attaches resolved tags to each item", () => {
     insertRepo({ id: 1 })
-    db.insert(tags).values({ id: 1, name: "cli", createdAt: "2026-01-01T00:00:00Z" }).run()
+    db.insert(tags)
+      .values({ id: 1, name: "cli", createdAt: "2026-01-01T00:00:00Z" })
+      .run()
     db.insert(repoTags).values({ repoId: 1, tagId: 1 }).run()
 
     const result = listRepos(db, { source: "owned" })
@@ -137,11 +193,25 @@ describe("listRepos", () => {
   })
 
   it("sorts by name ascending and by stars descending", () => {
-    insertRepo({ id: 1, name: "Zeta", fullName: "octocat/Zeta", stargazersCount: 1 })
-    insertRepo({ id: 2, name: "Alpha", fullName: "octocat/Alpha", stargazersCount: 9 })
+    insertRepo({
+      id: 1,
+      name: "Zeta",
+      fullName: "octocat/Zeta",
+      stargazersCount: 1,
+    })
+    insertRepo({
+      id: 2,
+      name: "Alpha",
+      fullName: "octocat/Alpha",
+      stargazersCount: 9,
+    })
 
-    expect(listRepos(db, { source: "owned", sort: "name" }).items.map((r) => r.name)).toEqual(["Alpha", "Zeta"])
-    expect(listRepos(db, { source: "owned", sort: "stars" }).items.map((r) => r.id)).toEqual([2, 1])
+    expect(
+      listRepos(db, { source: "owned", sort: "name" }).items.map((r) => r.name),
+    ).toEqual(["Alpha", "Zeta"])
+    expect(
+      listRepos(db, { source: "owned", sort: "stars" }).items.map((r) => r.id),
+    ).toEqual([2, 1])
   })
 
   it("paginates with the given page size", () => {
@@ -167,8 +237,8 @@ describe("listDistinctLanguages", () => {
          (1, 'octocat/A', 'A', 'octocat', 'https://x', 'TypeScript', 1),
          (2, 'octocat/B', 'B', 'octocat', 'https://x', 'Python', 1),
          (3, 'octocat/C', 'C', 'octocat', 'https://x', 'TypeScript', 1),
-         (4, 'octocat/D', 'D', 'octocat', 'https://x', 'Go', 0)`
-      )
+         (4, 'octocat/D', 'D', 'octocat', 'https://x', 'Go', 0)`,
+      ),
     )
 
     expect(listDistinctLanguages(db, "owned")).toEqual(["Python", "TypeScript"])
@@ -180,8 +250,8 @@ describe("setStarred", () => {
     const db = createDb(":memory:")
     db.run(
       sql.raw(
-        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`
-      )
+        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`,
+      ),
     )
 
     setStarred(db, 1, true)

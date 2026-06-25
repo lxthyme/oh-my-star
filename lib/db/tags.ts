@@ -8,11 +8,19 @@ export interface TagOption {
 }
 
 export function listTags(db: AppDatabase): TagOption[] {
-  return db.select({ id: tags.id, name: tags.name }).from(tags).orderBy(tags.name).all()
+  return db
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .orderBy(tags.name)
+    .all()
 }
 
 export function createTag(db: AppDatabase, name: string): TagOption {
-  const existing = db.select({ id: tags.id, name: tags.name }).from(tags).where(eq(tags.name, name)).get()
+  const existing = db
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .where(eq(tags.name, name))
+    .get()
   if (existing) return existing
 
   const now = new Date().toISOString()
@@ -30,8 +38,14 @@ export function getRepoTags(db: AppDatabase, repoId: number): TagOption[] {
     .all()
 }
 
-export function setRepoTags(db: AppDatabase, repoId: number, tagNames: string[]): TagOption[] {
-  const uniqueNames = [...new Set(tagNames.map((name) => name.trim()).filter(Boolean))]
+export function setRepoTags(
+  db: AppDatabase,
+  repoId: number,
+  tagNames: string[],
+): TagOption[] {
+  const uniqueNames = [
+    ...new Set(tagNames.map((name) => name.trim()).filter(Boolean)),
+  ]
   const resolved = uniqueNames.map((name) => createTag(db, name))
 
   db.transaction((tx) => {

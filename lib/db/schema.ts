@@ -45,5 +45,5 @@ export const repoTags = sqliteTable(
     repoId: integer("repo_id").notNull(),
     tagId: integer("tag_id").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.repoId, table.tagId] })]
+  (table) => [primaryKey({ columns: [table.repoId, table.tagId] })],
 )

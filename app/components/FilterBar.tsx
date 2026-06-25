@@ -52,8 +52,16 @@ const NOTE_OPTIONS = [
   { label: "未备注", value: "not_noted" },
 ]
 
-export default function FilterBar({ value, languages, tags, showStarredSort, onChange }: FilterBarProps) {
-  const typeOptions = showStarredSort ? TYPE_OPTIONS_STARRED : TYPE_OPTIONS_OWNED
+export default function FilterBar({
+  value,
+  languages,
+  tags,
+  showStarredSort,
+  onChange,
+}: FilterBarProps) {
+  const typeOptions = showStarredSort
+    ? TYPE_OPTIONS_STARRED
+    : TYPE_OPTIONS_OWNED
 
   const sortOptions = showStarredSort
     ? [
@@ -88,7 +96,12 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
           <Switch
             size="small"
             checked={value.searchDescription !== "false"}
-            onChange={(checked) => onChange({ ...value, searchDescription: checked ? "true" : "false" })}
+            onChange={(checked) =>
+              onChange({
+                ...value,
+                searchDescription: checked ? "true" : "false",
+              })
+            }
           />
         </Space>
       </div>
@@ -101,7 +114,10 @@ export default function FilterBar({ value, languages, tags, showStarredSort, onC
         />
         <Select
           value={value.language}
-          options={[{ label: "语言：全部", value: "all" }, ...languages.map((lang) => ({ label: lang, value: lang }))]}
+          options={[
+            { label: "语言：全部", value: "all" },
+            ...languages.map((lang) => ({ label: lang, value: lang })),
+          ]}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"
           onChange={(language) => onChange({ ...value, language })}
         />

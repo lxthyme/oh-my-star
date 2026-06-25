@@ -71,11 +71,16 @@ function mapRepo(raw: RawGitHubRepo): GitHubRepoData {
   }
 }
 
-export async function listOwnedRepos(client: Octokit): Promise<GitHubRepoData[]> {
-  const raw = (await client.paginate(client.rest.repos.listForAuthenticatedUser, {
-    per_page: 100,
-    affiliation: "owner",
-  })) as RawGitHubRepo[]
+export async function listOwnedRepos(
+  client: Octokit,
+): Promise<GitHubRepoData[]> {
+  const raw = (await client.paginate(
+    client.rest.repos.listForAuthenticatedUser,
+    {
+      per_page: 100,
+      affiliation: "owner",
+    },
+  )) as RawGitHubRepo[]
   return raw.map(mapRepo)
 }
 
@@ -84,18 +89,34 @@ export interface StarredRepoData {
   starredAt: string
 }
 
-export async function listStarredRepos(client: Octokit): Promise<StarredRepoData[]> {
-  const raw = (await client.paginate(client.rest.activity.listReposStarredByAuthenticatedUser, {
-    per_page: 100,
-    headers: { accept: "application/vnd.github.star+json" },
-  })) as unknown as Array<{ starred_at: string; repo: RawGitHubRepo }>
-  return raw.map((entry) => ({ repo: mapRepo(entry.repo), starredAt: entry.starred_at }))
+export async function listStarredRepos(
+  client: Octokit,
+): Promise<StarredRepoData[]> {
+  const raw = (await client.paginate(
+    client.rest.activity.listReposStarredByAuthenticatedUser,
+    {
+      per_page: 100,
+      headers: { accept: "application/vnd.github.star+json" },
+    },
+  )) as unknown as Array<{ starred_at: string; repo: RawGitHubRepo }>
+  return raw.map((entry) => ({
+    repo: mapRepo(entry.repo),
+    starredAt: entry.starred_at,
+  }))
 }
 
-export async function starRepo(client: Octokit, owner: string, repo: string): Promise<void> {
+export async function starRepo(
+  client: Octokit,
+  owner: string,
+  repo: string,
+): Promise<void> {
   await client.rest.activity.starRepoForAuthenticatedUser({ owner, repo })
 }
 
-export async function unstarRepo(client: Octokit, owner: string, repo: string): Promise<void> {
+export async function unstarRepo(
+  client: Octokit,
+  owner: string,
+  repo: string,
+): Promise<void> {
   await client.rest.activity.unstarRepoForAuthenticatedUser({ owner, repo })
 }

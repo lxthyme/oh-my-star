@@ -31,15 +31,23 @@ const DEFAULT_FILTERS: FilterValues = {
   tag: "all",
 }
 
-function filtersFromSearchParams(sp: URLSearchParams, source: RepoListProps["source"]): FilterValues {
-  const defaultSort: FilterValues["sort"] = source === "starred" ? "starred_at" : DEFAULT_FILTERS.sort
+function filtersFromSearchParams(
+  sp: URLSearchParams,
+  source: RepoListProps["source"],
+): FilterValues {
+  const defaultSort: FilterValues["sort"] =
+    source === "starred" ? "starred_at" : DEFAULT_FILTERS.sort
   return {
     search: sp.get("search") ?? DEFAULT_FILTERS.search,
-    searchDescription: (sp.get("searchDescription") as FilterValues["searchDescription"]) ?? DEFAULT_FILTERS.searchDescription,
+    searchDescription:
+      (sp.get("searchDescription") as FilterValues["searchDescription"]) ??
+      DEFAULT_FILTERS.searchDescription,
     type: (sp.get("type") as FilterValues["type"]) ?? DEFAULT_FILTERS.type,
     language: sp.get("language") ?? DEFAULT_FILTERS.language,
     sort: (sp.get("sort") as FilterValues["sort"]) ?? defaultSort,
-    favorite: (sp.get("favorite") as FilterValues["favorite"]) ?? DEFAULT_FILTERS.favorite,
+    favorite:
+      (sp.get("favorite") as FilterValues["favorite"]) ??
+      DEFAULT_FILTERS.favorite,
     note: (sp.get("note") as FilterValues["note"]) ?? DEFAULT_FILTERS.note,
     tag: sp.get("tag") ?? DEFAULT_FILTERS.tag,
   }
@@ -48,7 +56,10 @@ function filtersFromSearchParams(sp: URLSearchParams, source: RepoListProps["sou
 export default function RepoList({ source }: RepoListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const filters = useMemo(() => filtersFromSearchParams(searchParams, source), [searchParams, source])
+  const filters = useMemo(
+    () => filtersFromSearchParams(searchParams, source),
+    [searchParams, source],
+  )
   const page = Number(searchParams.get("page") ?? "1")
   const perPage = Number(searchParams.get("perPage") ?? "30")
 
@@ -106,7 +117,11 @@ export default function RepoList({ source }: RepoListProps) {
   }, [fetchRepos])
 
   const updateFilters = (next: FilterValues) => {
-    const qs = new URLSearchParams({ ...next, page: "1", perPage: String(perPage) })
+    const qs = new URLSearchParams({
+      ...next,
+      page: "1",
+      perPage: String(perPage),
+    })
     router.push(`?${qs.toString()}`)
   }
 
@@ -119,7 +134,11 @@ export default function RepoList({ source }: RepoListProps) {
     router.push(`?${qs.toString()}`)
   }
 
-  const callAndRefresh = async (path: string, method: string, body?: unknown): Promise<boolean> => {
+  const callAndRefresh = async (
+    path: string,
+    method: string,
+    body?: unknown,
+  ): Promise<boolean> => {
     const res = await fetch(path, {
       method,
       headers: body ? { "Content-Type": "application/json" } : undefined,
@@ -134,13 +153,19 @@ export default function RepoList({ source }: RepoListProps) {
   }
 
   const handleToggleFavorite = async (id: number, next: boolean) => {
-    if (await callAndRefresh(`/api/repos/${id}/favorite`, "PATCH", { isFavorite: next })) {
+    if (
+      await callAndRefresh(`/api/repos/${id}/favorite`, "PATCH", {
+        isFavorite: next,
+      })
+    ) {
       fetchRepos()
     }
   }
 
   const handleToggleStar = async (id: number, next: boolean) => {
-    if (await callAndRefresh(`/api/repos/${id}/star`, next ? "PUT" : "DELETE")) {
+    if (
+      await callAndRefresh(`/api/repos/${id}/star`, next ? "PUT" : "DELETE")
+    ) {
       fetchRepos()
     }
   }

@@ -38,7 +38,10 @@ describe("setNote", () => {
     const db = createDb(":memory:")
     createTestRepo(db, 1)
     setNote(db, 1, "值得学习的项目")
-    expect(getUserData(db, 1)).toEqual({ isFavorite: false, note: "值得学习的项目" })
+    expect(getUserData(db, 1)).toEqual({
+      isFavorite: false,
+      note: "值得学习的项目",
+    })
   })
 
   it("overwrites the previous note without affecting favorite status", () => {

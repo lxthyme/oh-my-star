@@ -34,35 +34,43 @@ describe("setRepoTags / getRepoTags", () => {
     const db = createDb(":memory:")
     db.run(
       sql.raw(
-        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`
-      )
+        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`,
+      ),
     )
 
     const result = setRepoTags(db, 1, ["cli", "favorite-tools"])
     expect(result.map((t) => t.name).sort()).toEqual(["cli", "favorite-tools"])
-    expect(getRepoTags(db, 1).map((t) => t.name).sort()).toEqual(["cli", "favorite-tools"])
+    expect(
+      getRepoTags(db, 1)
+        .map((t) => t.name)
+        .sort(),
+    ).toEqual(["cli", "favorite-tools"])
   })
 
   it("replaces the previous tag set rather than appending", () => {
     const db = createDb(":memory:")
     db.run(
       sql.raw(
-        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`
-      )
+        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`,
+      ),
     )
 
     setRepoTags(db, 1, ["cli", "old-tag"])
     setRepoTags(db, 1, ["cli", "new-tag"])
 
-    expect(getRepoTags(db, 1).map((t) => t.name).sort()).toEqual(["cli", "new-tag"])
+    expect(
+      getRepoTags(db, 1)
+        .map((t) => t.name)
+        .sort(),
+    ).toEqual(["cli", "new-tag"])
   })
 
   it("trims whitespace and drops empty/duplicate names", () => {
     const db = createDb(":memory:")
     db.run(
       sql.raw(
-        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`
-      )
+        `INSERT INTO repos (id, full_name, name, owner_login, html_url, is_owned) VALUES (1, 'octocat/A', 'A', 'octocat', 'https://x', 1)`,
+      ),
     )
 
     const result = setRepoTags(db, 1, [" cli ", "cli", "", "  "])

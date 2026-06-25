@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm"
 import type { AppDatabase } from "./client"
 import { repoUserData } from "./schema"
 
-export function setFavorite(db: AppDatabase, repoId: number, isFavorite: boolean): void {
+export function setFavorite(
+  db: AppDatabase,
+  repoId: number,
+  isFavorite: boolean,
+): void {
   db.insert(repoUserData)
     .values({ repoId, isFavorite: isFavorite ? 1 : 0 })
     .onConflictDoUpdate({
@@ -23,8 +27,15 @@ export function setNote(db: AppDatabase, repoId: number, note: string): void {
     .run()
 }
 
-export function getUserData(db: AppDatabase, repoId: number): { isFavorite: boolean; note: string | null } {
-  const row = db.select().from(repoUserData).where(eq(repoUserData.repoId, repoId)).get()
+export function getUserData(
+  db: AppDatabase,
+  repoId: number,
+): { isFavorite: boolean; note: string | null } {
+  const row = db
+    .select()
+    .from(repoUserData)
+    .where(eq(repoUserData.repoId, repoId))
+    .get()
   return {
     isFavorite: row?.isFavorite === 1,
     note: row?.note ?? null,

@@ -5,14 +5,23 @@ import { repos } from "@/lib/db/schema"
 import { setStarred } from "@/lib/db/repos"
 import { createGitHubClient, starRepo, unstarRepo } from "@/lib/github"
 
-function getOwnerAndName(repoId: number): { owner: string; name: string } | null {
-  const row = db.select({ fullName: repos.fullName }).from(repos).where(eq(repos.id, repoId)).get()
+function getOwnerAndName(
+  repoId: number,
+): { owner: string; name: string } | null {
+  const row = db
+    .select({ fullName: repos.fullName })
+    .from(repos)
+    .where(eq(repos.id, repoId))
+    .get()
   if (!row) return null
   const [owner, name] = row.fullName.split("/")
   return { owner, name }
 }
 
-export async function PUT(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params
   const repoId = Number(id)
   if (!Number.isInteger(repoId)) {
@@ -34,11 +43,17 @@ export async function PUT(_request: NextRequest, { params }: { params: Promise<{
     setStarred(db, repoId, true)
     return NextResponse.json({ id: repoId, isStarred: true })
   } catch {
-    return NextResponse.json({ error: "Star 失败，请稍后重试" }, { status: 502 })
+    return NextResponse.json(
+      { error: "Star 失败，请稍后重试" },
+      { status: 502 },
+    )
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params
   const repoId = Number(id)
   if (!Number.isInteger(repoId)) {
@@ -60,6 +75,9 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     setStarred(db, repoId, false)
     return NextResponse.json({ id: repoId, isStarred: false })
   } catch {
-    return NextResponse.json({ error: "Unstar 失败，请稍后重试" }, { status: 502 })
+    return NextResponse.json(
+      { error: "Unstar 失败，请稍后重试" },
+      { status: 502 },
+    )
   }
 }

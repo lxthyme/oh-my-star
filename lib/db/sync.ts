@@ -24,7 +24,12 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
   const merged = new Map<number, MergedEntry>()
 
   for (const repo of input.owned) {
-    merged.set(repo.id, { repo, isOwned: true, isStarred: false, starredAt: null })
+    merged.set(repo.id, {
+      repo,
+      isOwned: true,
+      isStarred: false,
+      starredAt: null,
+    })
   }
   for (const { repo, starredAt } of input.starred) {
     const existing = merged.get(repo.id)
@@ -68,7 +73,10 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
         syncedAt: now,
       }
 
-      tx.insert(repos).values(values).onConflictDoUpdate({ target: repos.id, set: values }).run()
+      tx.insert(repos)
+        .values(values)
+        .onConflictDoUpdate({ target: repos.id, set: values })
+        .run()
     }
   })
 
@@ -76,5 +84,8 @@ export function syncRepos(db: AppDatabase, input: SyncInput): SyncResult {
 }
 
 export function getLastSyncedAt(db: AppDatabase): string | null {
-  return db.select({ lastSyncedAt: sql<string | null>`MAX(${repos.syncedAt})` }).from(repos).get()!.lastSyncedAt
+  return db
+    .select({ lastSyncedAt: sql<string | null>`MAX(${repos.syncedAt})` })
+    .from(repos)
+    .get()!.lastSyncedAt
 }

@@ -1,6 +1,12 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
 import { message } from "antd"
 
 interface SyncState {
@@ -32,7 +38,9 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
         message.error(json.error ?? "同步失败")
         return
       }
-      message.success(`同步完成：owned ${json.ownedCount} / starred ${json.starredCount}`)
+      message.success(
+        `同步完成：owned ${json.ownedCount} / starred ${json.starredCount}`,
+      )
       setLastSyncedAt(new Date().toISOString())
       setSyncVersion((v) => v + 1)
     } finally {
@@ -41,7 +49,9 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
   }, [])
 
   return (
-    <SyncContext.Provider value={{ lastSyncedAt, syncing, syncVersion, triggerSync }}>
+    <SyncContext.Provider
+      value={{ lastSyncedAt, syncing, syncVersion, triggerSync }}
+    >
       {children}
     </SyncContext.Provider>
   )

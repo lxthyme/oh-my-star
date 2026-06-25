@@ -62,7 +62,9 @@ describe("listOwnedRepos", () => {
   })
 
   it("defaults missing optional fields to null/empty", async () => {
-    const client = makeStubClient([{ ...RAW_REPO, description: null, topics: undefined, language: null }])
+    const client = makeStubClient([
+      { ...RAW_REPO, description: null, topics: undefined, language: null },
+    ])
     const result = await listOwnedRepos(client)
     expect(result[0].description).toBeNull()
     expect(result[0].topics).toEqual([])
@@ -71,9 +73,16 @@ describe("listOwnedRepos", () => {
 
   it("maps mirror_url to mirrorUrl, defaulting to null when absent", async () => {
     const withMirror = await listOwnedRepos(
-      makeStubClient([{ ...RAW_REPO, mirror_url: "https://git.example.com/octocat/Hello-World.git" }])
+      makeStubClient([
+        {
+          ...RAW_REPO,
+          mirror_url: "https://git.example.com/octocat/Hello-World.git",
+        },
+      ]),
     )
-    expect(withMirror[0].mirrorUrl).toBe("https://git.example.com/octocat/Hello-World.git")
+    expect(withMirror[0].mirrorUrl).toBe(
+      "https://git.example.com/octocat/Hello-World.git",
+    )
 
     const withoutMirror = await listOwnedRepos(makeStubClient([RAW_REPO]))
     expect(withoutMirror[0].mirrorUrl).toBeNull()
@@ -82,11 +91,19 @@ describe("listOwnedRepos", () => {
 
 describe("listStarredRepos", () => {
   it("maps the {starred_at, repo} wrapper used by the star+json media type", async () => {
-    const client = makeStubClient([{ starred_at: "2026-03-01T00:00:00Z", repo: RAW_REPO }])
+    const client = makeStubClient([
+      { starred_at: "2026-03-01T00:00:00Z", repo: RAW_REPO },
+    ])
     const result = await listStarredRepos(client)
 
     expect(result).toEqual([
-      { repo: expect.objectContaining({ id: 1, fullName: "octocat/Hello-World" }), starredAt: "2026-03-01T00:00:00Z" },
+      {
+        repo: expect.objectContaining({
+          id: 1,
+          fullName: "octocat/Hello-World",
+        }),
+        starredAt: "2026-03-01T00:00:00Z",
+      },
     ])
   })
 })

@@ -55,7 +55,9 @@ export type AppDatabase = ReturnType<typeof drizzle<typeof schema>>
 
 // CREATE TABLE IF NOT EXISTS 不会给已存在的旧表补列，新列需要单独迁移。
 function migrate(sqlite: Database.Database): void {
-  const columns = sqlite.prepare("PRAGMA table_info(repos)").all() as { name: string }[]
+  const columns = sqlite.prepare("PRAGMA table_info(repos)").all() as {
+    name: string
+  }[]
   if (!columns.some((column) => column.name === "mirror_url")) {
     sqlite.exec("ALTER TABLE repos ADD COLUMN mirror_url TEXT")
   }

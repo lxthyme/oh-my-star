@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db/client"
 import { setNote } from "@/lib/db/user-data"
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params
   const repoId = Number(id)
   if (!Number.isInteger(repoId)) {

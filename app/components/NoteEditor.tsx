@@ -42,7 +42,13 @@ export default function NoteEditor({ note, onSave }: NoteEditorProps) {
             onChange={(e) => setDraft(e.target.value)}
             placeholder="添加备注..."
           />
-          <Button type="primary" size="small" style={{ marginTop: 8 }} loading={saving} onClick={handleSave}>
+          <Button
+            type="primary"
+            size="small"
+            style={{ marginTop: 8 }}
+            loading={saving}
+            onClick={handleSave}
+          >
             保存
           </Button>
         </div>
@@ -52,7 +58,13 @@ export default function NoteEditor({ note, onSave }: NoteEditorProps) {
         type="text"
         size="small"
         aria-label={note ? "编辑备注" : "添加备注"}
-        icon={note ? <FileTextOutlined style={{ color: "#1677ff" }} /> : <EditOutlined />}
+        icon={
+          note ? (
+            <FileTextOutlined style={{ color: "#1677ff" }} />
+          ) : (
+            <EditOutlined />
+          )
+        }
       />
     </Popover>
   )

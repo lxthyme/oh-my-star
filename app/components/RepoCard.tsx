@@ -1,7 +1,13 @@
 "use client"
 
 import { Button, Card, Space, Tag as AntTag, Typography } from "antd"
-import { ForkOutlined, HeartFilled, HeartOutlined, StarFilled, StarOutlined } from "@ant-design/icons"
+import {
+  ForkOutlined,
+  HeartFilled,
+  HeartOutlined,
+  StarFilled,
+  StarOutlined,
+} from "@ant-design/icons"
 import TagSelect, { type TagOption } from "./TagSelect"
 import NoteEditor from "./NoteEditor"
 
@@ -52,8 +58,16 @@ export default function RepoCard({
   return (
     <Card size="small" className="repo-card" style={{ height: "100%" }}>
       <Space orientation="vertical" size={8} style={{ width: "100%" }}>
-        <Space align="start" style={{ width: "100%", justifyContent: "space-between" }}>
-          <Link href={repo.htmlUrl} target="_blank" rel="noopener noreferrer" strong>
+        <Space
+          align="start"
+          style={{ width: "100%", justifyContent: "space-between" }}
+        >
+          <Link
+            href={repo.htmlUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            strong
+          >
             {repo.fullName}
           </Link>
           <Space size={8}>
@@ -62,7 +76,13 @@ export default function RepoCard({
               shape="circle"
               size="small"
               aria-label={repo.isFavorite ? "取消收藏" : "收藏"}
-              icon={repo.isFavorite ? <HeartFilled style={{ color: "#eb2f96" }} /> : <HeartOutlined />}
+              icon={
+                repo.isFavorite ? (
+                  <HeartFilled style={{ color: "#eb2f96" }} />
+                ) : (
+                  <HeartOutlined />
+                )
+              }
               onClick={() => onToggleFavorite(repo.id, !repo.isFavorite)}
             />
             <Button
@@ -70,15 +90,28 @@ export default function RepoCard({
               shape="circle"
               size="small"
               aria-label={repo.isStarred ? "取消 Star" : "Star"}
-              icon={repo.isStarred ? <StarFilled style={{ color: "#fadb14" }} /> : <StarOutlined />}
+              icon={
+                repo.isStarred ? (
+                  <StarFilled style={{ color: "#fadb14" }} />
+                ) : (
+                  <StarOutlined />
+                )
+              }
               onClick={() => onToggleStar(repo.id, !repo.isStarred)}
             />
-            <NoteEditor note={repo.note} onSave={(note) => onSaveNote(repo.id, note)} />
+            <NoteEditor
+              note={repo.note}
+              onSave={(note) => onSaveNote(repo.id, note)}
+            />
           </Space>
         </Space>
 
         {repo.description && (
-          <Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
+          <Paragraph
+            type="secondary"
+            ellipsis={{ rows: 2 }}
+            style={{ marginBottom: 0 }}
+          >
             {repo.description}
           </Paragraph>
         )}

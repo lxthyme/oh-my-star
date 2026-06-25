@@ -2,8 +2,22 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ConfigProvider, Dropdown, Layout, Menu, Tooltip, theme, type MenuProps } from "antd"
-import { StarFilled, SunOutlined, MoonOutlined, DesktopOutlined, SyncOutlined } from "@ant-design/icons"
+import {
+  ConfigProvider,
+  Dropdown,
+  Layout,
+  Menu,
+  Tooltip,
+  theme,
+  type MenuProps,
+} from "antd"
+import {
+  StarFilled,
+  SunOutlined,
+  MoonOutlined,
+  DesktopOutlined,
+  SyncOutlined,
+} from "@ant-design/icons"
 import { THEME_STORAGE_KEY, resolveTheme, type ThemeMode } from "../lib/theme"
 import { SyncProvider, useSync } from "./SyncContext"
 
@@ -45,7 +59,10 @@ function useThemeMode() {
   const isDark = resolveTheme(mode, prefersDark) === "dark"
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light")
+    document.documentElement.setAttribute(
+      "data-theme",
+      isDark ? "dark" : "light",
+    )
   }, [isDark])
 
   const setMode = (next: ThemeMode) => {
@@ -68,12 +85,25 @@ function formatSyncTime(iso: string): string {
 
 function SyncButton() {
   const { lastSyncedAt, syncing, triggerSync } = useSync()
-  const label = lastSyncedAt ? `上次同步：${formatSyncTime(lastSyncedAt)}` : "从未同步"
+  const label = lastSyncedAt
+    ? `上次同步：${formatSyncTime(lastSyncedAt)}`
+    : "从未同步"
 
   return (
     <Tooltip title={label}>
-      <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, color: "#fff" }}>
-        <span className="hidden sm:inline" style={{ fontSize: 12, opacity: 0.85, whiteSpace: "nowrap" }}>
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexShrink: 0,
+          color: "#fff",
+        }}
+      >
+        <span
+          className="hidden sm:inline"
+          style={{ fontSize: 12, opacity: 0.85, whiteSpace: "nowrap" }}
+        >
           {label}
         </span>
         <a
@@ -93,7 +123,9 @@ function SyncButton() {
 export default function AppShell({ children }: React.PropsWithChildren) {
   const { mode, isDark, setMode } = useThemeMode()
 
-  const themeMenuItems: MenuProps["items"] = (["light", "dark", "system"] as ThemeMode[]).map((m) => ({
+  const themeMenuItems: MenuProps["items"] = (
+    ["light", "dark", "system"] as ThemeMode[]
+  ).map((m) => ({
     key: m,
     label: THEME_MODE_LABELS[m],
     icon: THEME_MODE_ICONS[m],
@@ -134,7 +166,14 @@ export default function AppShell({ children }: React.PropsWithChildren) {
           >
             <Link
               href="/repos"
-              style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontWeight: 600, flexShrink: 0 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                color: "#fff",
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
             >
               <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
               <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
@@ -148,12 +187,21 @@ export default function AppShell({ children }: React.PropsWithChildren) {
             />
             <SyncButton />
             <Dropdown
-              menu={{ items: themeMenuItems, selectedKeys: [mode], onClick: ({ key }) => setMode(key as ThemeMode) }}
+              menu={{
+                items: themeMenuItems,
+                selectedKeys: [mode],
+                onClick: ({ key }) => setMode(key as ThemeMode),
+              }}
               trigger={["click"]}
             >
               <a
                 onClick={(e) => e.preventDefault()}
-                style={{ color: "#fff", fontSize: 18, flexShrink: 0, cursor: "pointer" }}
+                style={{
+                  color: "#fff",
+                  fontSize: 18,
+                  flexShrink: 0,
+                  cursor: "pointer",
+                }}
               >
                 {THEME_MODE_ICONS[mode]}
               </a>

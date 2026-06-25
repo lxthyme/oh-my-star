@@ -20,7 +20,9 @@ describe("createDb", () => {
       })
       .run()
     db.insert(repoUserData).values({ repoId: 1, isFavorite: 1 }).run()
-    db.insert(tags).values({ name: "favorite-tools", createdAt: "2026-01-01T00:00:00Z" }).run()
+    db.insert(tags)
+      .values({ name: "favorite-tools", createdAt: "2026-01-01T00:00:00Z" })
+      .run()
     const tag = db.select().from(tags).get()!
     db.insert(repoTags).values({ repoId: 1, tagId: tag.id }).run()
 
@@ -40,7 +42,10 @@ describe("createDb", () => {
   })
 
   it("backfills the mirror_url column for a pre-existing database that lacks it", () => {
-    const dbPath = path.join(os.tmpdir(), `oh-my-star-test-${Date.now()}-${Math.random()}.db`)
+    const dbPath = path.join(
+      os.tmpdir(),
+      `oh-my-star-test-${Date.now()}-${Math.random()}.db`,
+    )
     const legacy = new Database(dbPath)
     legacy.exec(`
       CREATE TABLE repos (
@@ -82,7 +87,9 @@ describe("createDb", () => {
       })
       .run()
 
-    expect(db.select().from(repos).get()!.mirrorUrl).toBe("https://git.example.com/octocat/Hello-World.git")
+    expect(db.select().from(repos).get()!.mirrorUrl).toBe(
+      "https://git.example.com/octocat/Hello-World.git",
+    )
 
     fs.rmSync(dbPath, { force: true })
     fs.rmSync(`${dbPath}-shm`, { force: true })

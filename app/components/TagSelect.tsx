@@ -13,7 +13,11 @@ interface TagSelectProps {
   onChange: (tagNames: string[]) => void
 }
 
-export default function TagSelect({ allTags, value, onChange }: TagSelectProps) {
+export default function TagSelect({
+  allTags,
+  value,
+  onChange,
+}: TagSelectProps) {
   return (
     <Select
       mode="tags"

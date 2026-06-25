@@ -3,7 +3,13 @@ import type { AppDatabase } from "./client"
 import { repos, repoUserData, repoTags, tags } from "./schema"
 
 export type RepoSource = "owned" | "starred"
-export type RepoTypeFilter = "all" | "sources" | "forks" | "archived" | "mirrors" | "templates"
+export type RepoTypeFilter =
+  | "all"
+  | "sources"
+  | "forks"
+  | "archived"
+  | "mirrors"
+  | "templates"
 export type RepoSort = "updated" | "name" | "stars" | "starred_at"
 export type TriStateFilter = "all" | "favorite" | "not_favorite"
 export type NoteFilterValue = "all" | "noted" | "not_noted"
@@ -60,19 +66,25 @@ const DEFAULT_PER_PAGE = 30
 function buildWhere(params: ListReposParams): SQL | undefined {
   const conditions: SQL[] = []
 
-  conditions.push(params.source === "owned" ? eq(repos.isOwned, 1) : eq(repos.isStarred, 1))
+  conditions.push(
+    params.source === "owned" ? eq(repos.isOwned, 1) : eq(repos.isStarred, 1),
+  )
 
   if (params.search) {
     const term = `%${params.search}%`
     conditions.push(
-      params.searchDescription ?? true
+      (params.searchDescription ?? true)
         ? sql`(${repos.name} LIKE ${term} OR ${repos.description} LIKE ${term})`
-        : sql`${repos.name} LIKE ${term}`
+        : sql`${repos.name} LIKE ${term}`,
     )
   }
 
   if (params.type === "sources") {
-    conditions.push(eq(repos.fork, 0), eq(repos.archived, 0), eq(repos.isTemplate, 0))
+    conditions.push(
+      eq(repos.fork, 0),
+      eq(repos.archived, 0),
+      eq(repos.isTemplate, 0),
+    )
   } else if (params.type === "forks") {
     conditions.push(eq(repos.fork, 1))
   } else if (params.type === "archived") {
@@ -94,25 +106,35 @@ function buildWhere(params: ListReposParams): SQL | undefined {
   }
 
   if (params.note === "noted") {
-    conditions.push(sql`(${repoUserData.note} IS NOT NULL AND ${repoUserData.note} != '')`)
+    conditions.push(
+      sql`(${repoUserData.note} IS NOT NULL AND ${repoUserData.note} != '')`,
+    )
   } else if (params.note === "not_noted") {
-    conditions.push(sql`(${repoUserData.note} IS NULL OR ${repoUserData.note} = '')`)
+    conditions.push(
+      sql`(${repoUserData.note} IS NULL OR ${repoUserData.note} = '')`,
+    )
   }
 
   if (params.tagId === "untagged") {
-    conditions.push(sql`NOT EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id})`)
+    conditions.push(
+      sql`NOT EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id})`,
+    )
   } else if (typeof params.tagId === "number") {
     conditions.push(
-      sql`EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.tagId} = ${params.tagId})`
+      sql`EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.tagId} = ${params.tagId})`,
     )
   }
 
   return and(...conditions)
 }
 
-export function listRepos(db: AppDatabase, params: ListReposParams): ListReposResult {
+export function listRepos(
+  db: AppDatabase,
+  params: ListReposParams,
+): ListReposResult {
   const page = params.page && params.page > 0 ? params.page : 1
-  const perPage = params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE
+  const perPage =
+    params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE
   const where = buildWhere(params)
 
   const sortColumnMap = {
@@ -132,7 +154,11 @@ export function listRepos(db: AppDatabase, params: ListReposParams): ListReposRe
     .get()!.count
 
   const rows = db
-    .select({ repo: repos, isFavorite: repoUserData.isFavorite, note: repoUserData.note })
+    .select({
+      repo: repos,
+      isFavorite: repoUserData.isFavorite,
+      note: repoUserData.note,
+    })
     .from(repos)
     .leftJoin(repoUserData, eq(repoUserData.repoId, repos.id))
     .where(where)
@@ -187,8 +213,12 @@ export function listRepos(db: AppDatabase, params: ListReposParams): ListReposRe
   return { items, total, page, perPage }
 }
 
-export function listDistinctLanguages(db: AppDatabase, source: RepoSource): string[] {
-  const sourceCondition = source === "owned" ? eq(repos.isOwned, 1) : eq(repos.isStarred, 1)
+export function listDistinctLanguages(
+  db: AppDatabase,
+  source: RepoSource,
+): string[] {
+  const sourceCondition =
+    source === "owned" ? eq(repos.isOwned, 1) : eq(repos.isStarred, 1)
   const rows = db
     .select({ language: repos.language })
     .from(repos)
@@ -197,9 +227,16 @@ export function listDistinctLanguages(db: AppDatabase, source: RepoSource): stri
   return [...new Set(rows.map((row) => row.language as string))].sort()
 }
 
-export function setStarred(db: AppDatabase, repoId: number, isStarred: boolean): void {
+export function setStarred(
+  db: AppDatabase,
+  repoId: number,
+  isStarred: boolean,
+): void {
   db.update(repos)
-    .set({ isStarred: isStarred ? 1 : 0, starredAt: isStarred ? new Date().toISOString() : null })
+    .set({
+      isStarred: isStarred ? 1 : 0,
+      starredAt: isStarred ? new Date().toISOString() : null,
+    })
     .where(eq(repos.id, repoId))
     .run()
 }

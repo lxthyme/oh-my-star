@@ -2419,7 +2419,7 @@ EOF
 
 > 这个脚本只为本项目"从单用户旧库迁移到 Turso 多租户新库"跑一次，目标库假定是空的（刚跑完 `npm run db:migrate` 建好表、还没写入任何数据），所以全部用普通 `insert`，不做 `onConflict` 兼容重跑——重复执行会因主键冲突报错，这是有意的安全闸：脚本不是幂等的，不应该被默默重跑两次。
 
-- [ ] **Step 1: 创建迁移脚本**
+- [x] **Step 1: 创建迁移脚本**
 
 Create `scripts/migrate-legacy-data.ts`:
 
@@ -2596,12 +2596,12 @@ main().catch((error) => {
 })
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `npx tsc --noEmit`
 Expected: 无新增错误（此时 Task 1-7 的改动应已全部完成，整体应无错误）。
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add scripts/migrate-legacy-data.ts

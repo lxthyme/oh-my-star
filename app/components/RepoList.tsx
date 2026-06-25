@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Col, Pagination, Row, Spin, message } from "antd"
+import { Col, Pagination, Row, Spin, message, theme } from "antd"
 import FilterBar, { type FilterValues } from "./FilterBar"
 import RepoCard, { type RepoCardData } from "./RepoCard"
 import type { TagOption } from "./TagSelect"
@@ -54,6 +54,7 @@ function filtersFromSearchParams(
 }
 
 export default function RepoList({ source }: RepoListProps) {
+  const { token } = theme.useToken()
   const router = useRouter()
   const searchParams = useSearchParams()
   const filters = useMemo(
@@ -213,17 +214,31 @@ export default function RepoList({ source }: RepoListProps) {
         </Row>
       </Spin>
 
+      {data && <div style={{ height: 64 }} />}
+
       {data && (
-        <div className="mt-4 flex justify-center sm:justify-end">
-          <Pagination
-            current={data.page}
-            pageSize={data.perPage}
-            total={data.total}
-            onChange={updatePage}
-            showSizeChanger
-            pageSizeOptions={[10, 20, 30, 50, 100]}
-            showTotal={(total) => `Total ${total} items`}
-          />
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 10,
+            background: token.colorBgContainer,
+            borderTop: `1px solid ${token.colorBorderSecondary}`,
+          }}
+        >
+          <div className="page-container flex justify-center px-4 py-3 sm:justify-end">
+            <Pagination
+              current={data.page}
+              pageSize={data.perPage}
+              total={data.total}
+              onChange={updatePage}
+              showSizeChanger
+              pageSizeOptions={[10, 20, 30, 50, 100]}
+              showTotal={(total) => `Total ${total} items`}
+            />
+          </div>
         </div>
       )}
     </div>

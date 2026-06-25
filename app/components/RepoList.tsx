@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Button, Col, Pagination, Row, Spin, message } from "antd"
-import { SyncOutlined } from "@ant-design/icons"
+import { Col, Pagination, Row, Spin, message } from "antd"
 import FilterBar, { type FilterValues } from "./FilterBar"
 import RepoCard, { type RepoCardData } from "./RepoCard"
 import type { TagOption } from "./TagSelect"
+import { useSync } from "./SyncContext"
 
 interface RepoListProps {
   source: "owned" | "starred"
@@ -52,9 +52,9 @@ export default function RepoList({ source }: RepoListProps) {
   const page = Number(searchParams.get("page") ?? "1")
   const perPage = Number(searchParams.get("perPage") ?? "30")
 
+  const { syncVersion } = useSync()
   const [data, setData] = useState<ReposResponse | null>(null)
   const [loading, setLoading] = useState(false)
-  const [syncing, setSyncing] = useState(false)
   const [allTags, setAllTags] = useState<TagOption[]>([])
 
   const fetchTags = useCallback(async () => {
@@ -90,7 +90,7 @@ export default function RepoList({ source }: RepoListProps) {
     } finally {
       setLoading(false)
     }
-  }, [source, page, perPage, filters])
+  }, [source, page, perPage, filters, syncVersion])
 
   useEffect(() => {
     // 取数后必然 setState，react-hooks/set-state-in-effect 对所有 fetch-on-mount 都会报错
@@ -115,22 +115,6 @@ export default function RepoList({ source }: RepoListProps) {
       perPage: String(nextPerPage),
     })
     router.push(`?${qs.toString()}`)
-  }
-
-  const handleSync = async () => {
-    setSyncing(true)
-    try {
-      const res = await fetch("/api/sync", { method: "POST" })
-      const json = await res.json()
-      if (!res.ok) {
-        message.error(json.error ?? "同步失败")
-        return
-      }
-      message.success(`同步完成：owned ${json.ownedCount} / starred ${json.starredCount}`)
-      fetchRepos()
-    } finally {
-      setSyncing(false)
-    }
   }
 
   const callAndRefresh = async (path: string, method: string, body?: unknown): Promise<boolean> => {
@@ -174,27 +158,15 @@ export default function RepoList({ source }: RepoListProps) {
 
   return (
     <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }} gutter={[16, 16]}>
-        <Col flex="auto">
-          <FilterBar
-            value={filters}
-            languages={data?.languages ?? []}
-            tags={allTags}
-            showStarredSort={source === "starred"}
-            onChange={updateFilters}
-          />
-        </Col>
-        <Col xs={24} sm="auto">
-          <Button
-            icon={<SyncOutlined spin={syncing} />}
-            onClick={handleSync}
-            loading={syncing}
-            className="w-full sm:w-auto"
-          >
-            同步
-          </Button>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: 16 }}>
+        <FilterBar
+          value={filters}
+          languages={data?.languages ?? []}
+          tags={allTags}
+          showStarredSort={source === "starred"}
+          onChange={updateFilters}
+        />
+      </div>
 
       <Spin spinning={loading}>
         <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, 16]}>

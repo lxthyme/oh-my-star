@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ConfigProvider, Dropdown, Layout, Menu, theme, type MenuProps } from "antd"
-import { StarFilled, SunOutlined, MoonOutlined, DesktopOutlined } from "@ant-design/icons"
+import { ConfigProvider, Dropdown, Layout, Menu, Tooltip, theme, type MenuProps } from "antd"
+import { StarFilled, SunOutlined, MoonOutlined, DesktopOutlined, SyncOutlined } from "@ant-design/icons"
 import { THEME_STORAGE_KEY, resolveTheme, type ThemeMode } from "../lib/theme"
+import { SyncProvider, useSync } from "./SyncContext"
 
 const NAV_ITEMS = [
   { key: "/repos", label: <Link href="/repos">我的仓库</Link> },
@@ -60,6 +61,36 @@ function useThemeMode() {
   return { mode, isDark, setMode }
 }
 
+function formatSyncTime(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function SyncButton() {
+  const { lastSyncedAt, syncing, triggerSync } = useSync()
+  const label = lastSyncedAt ? `上次同步：${formatSyncTime(lastSyncedAt)}` : "从未同步"
+
+  return (
+    <Tooltip title={label}>
+      <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, color: "#fff" }}>
+        <span className="hidden sm:inline" style={{ fontSize: 12, opacity: 0.85, whiteSpace: "nowrap" }}>
+          {label}
+        </span>
+        <a
+          onClick={(e) => {
+            e.preventDefault()
+            triggerSync()
+          }}
+          style={{ color: "#fff", fontSize: 18, cursor: "pointer" }}
+        >
+          <SyncOutlined spin={syncing} />
+        </a>
+      </span>
+    </Tooltip>
+  )
+}
+
 export default function AppShell({ children }: React.PropsWithChildren) {
   const { mode, isDark, setMode } = useThemeMode()
 
@@ -89,48 +120,51 @@ export default function AppShell({ children }: React.PropsWithChildren) {
         },
       }}
     >
-      <Layout style={{ minHeight: "100vh" }}>
-        <Layout.Header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            paddingInline: 16,
-          }}
-        >
-          <Link
-            href="/repos"
-            style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontWeight: 600, flexShrink: 0 }}
+      <SyncProvider>
+        <Layout style={{ minHeight: "100vh" }}>
+          <Layout.Header
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              paddingInline: 16,
+            }}
           >
-            <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
-            <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
-          </Link>
-          <Menu
-            theme="dark"
-            mode="horizontal"
-            items={NAV_ITEMS}
-            selectable={false}
-            style={{ flex: 1, minWidth: 0, background: "transparent" }}
-          />
-          <Dropdown
-            menu={{ items: themeMenuItems, selectedKeys: [mode], onClick: ({ key }) => setMode(key as ThemeMode) }}
-            trigger={["click"]}
-          >
-            <a
-              onClick={(e) => e.preventDefault()}
-              style={{ color: "#fff", fontSize: 18, flexShrink: 0, cursor: "pointer" }}
+            <Link
+              href="/repos"
+              style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontWeight: 600, flexShrink: 0 }}
             >
-              {THEME_MODE_ICONS[mode]}
-            </a>
-          </Dropdown>
-        </Layout.Header>
-        <Layout.Content style={{ padding: "16px 16px 32px" }}>
-          <div className="page-container">{children}</div>
-        </Layout.Content>
-      </Layout>
+              <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
+              <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
+            </Link>
+            <Menu
+              theme="dark"
+              mode="horizontal"
+              items={NAV_ITEMS}
+              selectable={false}
+              style={{ flex: 1, minWidth: 0, background: "transparent" }}
+            />
+            <SyncButton />
+            <Dropdown
+              menu={{ items: themeMenuItems, selectedKeys: [mode], onClick: ({ key }) => setMode(key as ThemeMode) }}
+              trigger={["click"]}
+            >
+              <a
+                onClick={(e) => e.preventDefault()}
+                style={{ color: "#fff", fontSize: 18, flexShrink: 0, cursor: "pointer" }}
+              >
+                {THEME_MODE_ICONS[mode]}
+              </a>
+            </Dropdown>
+          </Layout.Header>
+          <Layout.Content style={{ padding: "16px 16px 32px" }}>
+            <div className="page-container">{children}</div>
+          </Layout.Content>
+        </Layout>
+      </SyncProvider>
     </ConfigProvider>
   )
 }

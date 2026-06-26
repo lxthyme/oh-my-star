@@ -37,6 +37,11 @@ yarn-error.log*
 # sqlite
 /data/*.db
 /data/*.db-*
+*.zip
+
+# compiled js (tsc output, not needed alongside ts source)
+auth.js
+lib/**/*.js
 
 # vercel
 .vercel

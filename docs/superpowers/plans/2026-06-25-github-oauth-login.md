@@ -333,7 +333,7 @@ export const config = {
 Run: `npx tsc --noEmit`
 Expected: 无输出（无错误）。
 
-- [ ] **Step 3: 手动验证（需要 Prerequisites 中的真实 OAuth 凭据已写入 `.env.local`）**
+- [x] **Step 3: 手动验证（需要 Prerequisites 中的真实 OAuth 凭据已写入 `.env.local`）**
 
 Run: `npm run dev`，浏览器访问 `http://localhost:6602/`。
 Expected: 未登录状态下自动跳转到 `http://localhost:6602/login`。
@@ -413,7 +413,7 @@ export default async function LoginPage({
 Run: `npx tsc --noEmit`
 Expected: 无输出（无错误）。
 
-- [ ] **Step 3: 手动验证**
+- [x] **Step 3: 手动验证**
 
 Run: `npm run dev`，浏览器访问 `http://localhost:6602/login`，点击"用 GitHub 登录"。
 Expected: 跳转到 GitHub 授权页；授权后，若你的 GitHub 用户名在 `ALLOWED_GITHUB_LOGINS` 中，跳回首页且不再重定向到 `/login`；若不在白名单中，跳回 `/login?error=AccessDenied` 并显示错误提示。

@@ -2391,7 +2391,7 @@ export async function POST() {
 Run: `npm test && npx tsc --noEmit && npm run build`
 Expected: 三条命令全部成功（`npm run build` 成功证明所有路由文件类型与导入都正确闭环）。
 
-- [ ] **Step 10: 手动验证（需要 Prerequisites 中的真实 Turso dev 库与上一份计划的真实 OAuth 凭据均已配置）**
+- [x] **Step 10: 手动验证（需要 Prerequisites 中的真实 Turso dev 库与上一份计划的真实 OAuth 凭据均已配置）**
 
 Run: `npm run db:migrate`（把 Task 2 生成的迁移应用到 `.env.local` 里配置的 Turso dev 库），然后 `npm run dev`。
 Expected: 登录后点击同步、收藏、加标签、写备注、star/unstar 均正常工作；重启 `npm run dev` 后数据仍在（证明确实落在远程 Turso，不是内存里的临时数据）。

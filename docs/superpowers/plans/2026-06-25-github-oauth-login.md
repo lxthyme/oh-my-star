@@ -359,7 +359,7 @@ EOF
 **Interfaces:**
 - Consumes: `signIn` from `auth.ts`（Task 1 produced）。
 
-- [ ] **Step 1: 创建登录页**
+- [x] **Step 1: 创建登录页**
 
 Create `app/login/page.tsx`:
 
@@ -408,7 +408,7 @@ export default async function LoginPage({
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `npx tsc --noEmit`
 Expected: 无输出（无错误）。
@@ -418,7 +418,7 @@ Expected: 无输出（无错误）。
 Run: `npm run dev`，浏览器访问 `http://localhost:6602/login`，点击"用 GitHub 登录"。
 Expected: 跳转到 GitHub 授权页；授权后，若你的 GitHub 用户名在 `ALLOWED_GITHUB_LOGINS` 中，跳回首页且不再重定向到 `/login`；若不在白名单中，跳回 `/login?error=AccessDenied` 并显示错误提示。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add app/login/page.tsx

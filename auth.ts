@@ -23,8 +23,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token
     },
     async session({ session, token }: { session: Session; token: JWT }) {
-      session.accessToken = (token.accessToken as unknown) as string
-      session.userId = (token.githubId as unknown) as number
+      session.accessToken = token.accessToken!
+      session.userId = token.githubId!
       return session
     },
   },

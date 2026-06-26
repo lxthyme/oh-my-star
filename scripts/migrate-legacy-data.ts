@@ -78,67 +78,70 @@ async function main() {
   })
   const db = drizzle(client, { schema })
 
-  for (const row of repoRows) {
-    await db.insert(schema.repos).values({
-      id: row.id,
-      fullName: row.full_name,
-      name: row.name,
-      ownerLogin: row.owner_login,
-      ownerAvatar: row.owner_avatar,
-      description: row.description,
-      htmlUrl: row.html_url,
-      language: row.language,
-      topics: row.topics,
-      stargazersCount: row.stargazers_count,
-      forksCount: row.forks_count,
-      archived: row.archived,
-      fork: row.fork,
-      private: row.private,
-      isTemplate: row.is_template,
-      mirrorUrl: row.mirror_url,
-      pushedAt: row.pushed_at,
-      updatedAt: row.updated_at,
-      createdAt: row.created_at,
-    })
-
-    await db.insert(schema.userRepos).values({
-      userId,
-      repoId: row.id,
-      isOwned: row.is_owned,
-      isStarred: row.is_starred,
-      starredAt: row.starred_at,
-      syncedAt: row.synced_at,
-    })
-  }
-
-  for (const row of userDataRows) {
-    await db.insert(schema.repoUserData).values({
-      userId,
-      repoId: row.repo_id,
-      isFavorite: row.is_favorite,
-      note: row.note,
-      noteUpdatedAt: row.note_updated_at,
-    })
-  }
-
   const tagIdMap = new Map<number, number>()
-  for (const row of tagRows) {
-    const [inserted] = await db
-      .insert(schema.tags)
-      .values({ userId, name: row.name, createdAt: row.created_at })
-      .returning({ id: schema.tags.id })
-    tagIdMap.set(row.id, inserted.id)
-  }
 
-  for (const row of repoTagRows) {
-    const newTagId = tagIdMap.get(row.tag_id)
-    if (newTagId === undefined) continue
-    await db.insert(schema.repoTags).values({
-      userId,
-      repoId: row.repo_id,
-      tagId: newTagId,
-    })
-  }
+  await db.transaction(async (tx) => {
+    for (const row of repoRows) {
+      await tx.insert(schema.repos).values({
+        id: row.id,
+        fullName: row.full_name,
+        name: row.name,
+        ownerLogin: row.owner_login,
+        ownerAvatar: row.owner_avatar,
+        description: row.description,
+        htmlUrl: row.html_url,
+        language: row.language,
+        topics: row.topics,
+        stargazersCount: row.stargazers_count,
+        forksCount: row.forks_count,
+        archived: row.archived,
+        fork: row.fork,
+        private: row.private,
+        isTemplate: row.is_template,
+        mirrorUrl: row.mirror_url,
+        pushedAt: row.pushed_at,
+        updatedAt: row.updated_at,
+        createdAt: row.created_at,
+      })
+
+      await tx.insert(schema.userRepos).values({
+        userId,
+        repoId: row.id,
+        isOwned: row.is_owned,
+        isStarred: row.is_starred,
+        starredAt: row.starred_at,
+        syncedAt: row.synced_at,
+      })
+    }
+
+    for (const row of userDataRows) {
+      await tx.insert(schema.repoUserData).values({
+        userId,
+        repoId: row.repo_id,
+        isFavorite: row.is_favorite,
+        note: row.note,
+        noteUpdatedAt: row.note_updated_at,
+      })
+    }
+
+    for (const row of tagRows) {
+      const [inserted] = await tx
+        .insert(schema.tags)
+        .values({ userId, name: row.name, createdAt: row.created_at })
+        .returning({ id: schema.tags.id })
+      tagIdMap.set(row.id, inserted.id)
+    }
+
+    for (const row of repoTagRows) {
+      const newTagId = tagIdMap.get(row.tag_id)
+      if (newTagId === undefined) continue
+      await tx.insert(schema.repoTags).values({
+        userId,
+        repoId: row.repo_id,
+        tagId: newTagId,
+      })
+    }
+  })
 
   const counts = {
     repos: (await db.select().from(schema.repos)).length,

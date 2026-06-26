@@ -303,7 +303,7 @@ EOF
 
 > 本项目这版 Next.js（16）已将 `middleware.ts` 文件约定重命名为 `proxy.ts`，默认 Node.js 运行时，导出函数可以是默认导出或具名导出 `proxy`（详见 `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`）。`matcher` 不排除 `/api`，意味着未登录的直接 API 调用也会被重定向（而不是返回 401 JSON）——对个人工具这是可接受的简化，真正需要凭据值的两个路由（Task 6）会在内部再做一次显式校验。
 
-- [ ] **Step 1: 创建 `proxy.ts`**
+- [x] **Step 1: 创建 `proxy.ts`**
 
 Create `proxy.ts`:
 
@@ -328,7 +328,7 @@ export const config = {
 }
 ```
 
-- [ ] **Step 2: 类型检查**
+- [x] **Step 2: 类型检查**
 
 Run: `npx tsc --noEmit`
 Expected: 无输出（无错误）。
@@ -338,7 +338,7 @@ Expected: 无输出（无错误）。
 Run: `npm run dev`，浏览器访问 `http://localhost:6602/`。
 Expected: 未登录状态下自动跳转到 `http://localhost:6602/login`。
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add proxy.ts

@@ -440,7 +440,7 @@ EOF
 **Interfaces:**
 - Consumes: `auth` from `auth.ts`；`session.accessToken`（Task 3 produced）。
 
-- [ ] **Step 1: 修改 `app/api/sync/route.ts` 的 `POST`，去掉 `process.env.GITHUB_TOKEN`**
+- [x] **Step 1: 修改 `app/api/sync/route.ts` 的 `POST`，去掉 `process.env.GITHUB_TOKEN`**
 
 Modify `app/api/sync/route.ts`：
 
@@ -493,7 +493,7 @@ export async function POST() {
 }
 ```
 
-- [ ] **Step 2: 修改 `app/api/repos/[id]/star/route.ts` 的 `PUT`/`DELETE`**
+- [x] **Step 2: 修改 `app/api/repos/[id]/star/route.ts` 的 `PUT`/`DELETE`**
 
 Modify `app/api/repos/[id]/star/route.ts`：
 
@@ -592,17 +592,17 @@ export async function DELETE(
 }
 ```
 
-- [ ] **Step 3: 全量测试 + 类型检查 + 构建**
+- [x] **Step 3: 全量测试 + 类型检查 + 构建**
 
 Run: `npm test && npx tsc --noEmit && npm run build`
 Expected: 全部通过（这两个路由文件没有专属单元测试，现有 `lib/db/*.test.ts`、`lib/github.test.ts` 不受影响应继续全绿；`npm run build` 验证路由文件本身没有编译错误）。
 
-- [ ] **Step 4: 手动验证端到端同步**
+- [x] **Step 4: 手动验证端到端同步**
 
 Run: `npm run dev`，登录后点击页面上的同步按钮。
 Expected: 同步成功，不再依赖 `.env.local` 里的 `GITHUB_TOKEN`（可临时删掉该变量验证同步仍然可用）。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add app/api/sync/route.ts "app/api/repos/[id]/star/route.ts"

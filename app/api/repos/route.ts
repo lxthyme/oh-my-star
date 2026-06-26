@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
 import {
   listRepos,
@@ -7,6 +8,11 @@ import {
 } from "@/lib/db/repos"
 
 export async function GET(request: NextRequest) {
+  const session = await auth()
+  if (!session?.userId) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 })
+  }
+
   const sp = request.nextUrl.searchParams
   const source = sp.get("source")
   if (source !== "owned" && source !== "starred") {
@@ -36,7 +42,7 @@ export async function GET(request: NextRequest) {
     perPage: sp.get("perPage") ? Number(sp.get("perPage")) : undefined,
   }
 
-  const result = listRepos(db, params)
-  const languages = listDistinctLanguages(db, source)
+  const result = await listRepos(db, session.userId, params)
+  const languages = await listDistinctLanguages(db, session.userId, source)
   return NextResponse.json({ ...result, languages })
 }

@@ -1986,7 +1986,7 @@ EOF
 
 > 这八个文件本身没有专属单元测试（现有项目约定：路由是薄封装，逻辑测试落在 `lib/db/*.test.ts` 里）。本任务用 `npx tsc --noEmit` + `npm run build` 作为编译期校验，外加登录后的手动 curl/浏览器验证作为行为校验——这与项目现有测试覆盖范围一致，没有新增"裸路由"测试是有意为之，不是遗漏。
 
-- [ ] **Step 1: 改写 `app/api/repos/route.ts`**
+- [x] **Step 1: 改写 `app/api/repos/route.ts`**
 
 Modify `app/api/repos/route.ts`（整个文件替换为）：
 
@@ -2041,7 +2041,7 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-- [ ] **Step 2: 改写 `app/api/repos/counts/route.ts`**
+- [x] **Step 2: 改写 `app/api/repos/counts/route.ts`**
 
 Modify `app/api/repos/counts/route.ts`（整个文件替换为）：
 
@@ -2061,7 +2061,7 @@ export async function GET() {
 }
 ```
 
-- [ ] **Step 3: 改写 `app/api/repos/[id]/favorite/route.ts`**
+- [x] **Step 3: 改写 `app/api/repos/[id]/favorite/route.ts`**
 
 Modify `app/api/repos/[id]/favorite/route.ts`（整个文件替换为）：
 
@@ -2099,7 +2099,7 @@ export async function PATCH(
 }
 ```
 
-- [ ] **Step 4: 改写 `app/api/repos/[id]/note/route.ts`**
+- [x] **Step 4: 改写 `app/api/repos/[id]/note/route.ts`**
 
 Modify `app/api/repos/[id]/note/route.ts`（整个文件替换为）：
 
@@ -2134,7 +2134,7 @@ export async function PATCH(
 }
 ```
 
-- [ ] **Step 5: 改写 `app/api/repos/[id]/star/route.ts`（同时补 Task 6 需要的 `userId` 与 `await`，叠加在上一份计划已经做的 session token 改动之上）**
+- [x] **Step 5: 改写 `app/api/repos/[id]/star/route.ts`（同时补 Task 6 需要的 `userId` 与 `await`，叠加在上一份计划已经做的 session token 改动之上）**
 
 Modify `app/api/repos/[id]/star/route.ts`（整个文件替换为）：
 
@@ -2233,7 +2233,7 @@ export async function DELETE(
 }
 ```
 
-- [ ] **Step 6: 改写 `app/api/repos/[id]/tags/route.ts`**
+- [x] **Step 6: 改写 `app/api/repos/[id]/tags/route.ts`**
 
 Modify `app/api/repos/[id]/tags/route.ts`（整个文件替换为）：
 
@@ -2291,7 +2291,7 @@ export async function PUT(
 }
 ```
 
-- [ ] **Step 7: 改写 `app/api/tags/route.ts`**
+- [x] **Step 7: 改写 `app/api/tags/route.ts`**
 
 Modify `app/api/tags/route.ts`（整个文件替换为）：
 
@@ -2326,7 +2326,7 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-- [ ] **Step 8: 改写 `app/api/sync/route.ts`（叠加上一份计划已做的 token 改动，补 `userId` 与 `await`）**
+- [x] **Step 8: 改写 `app/api/sync/route.ts`（叠加上一份计划已做的 token 改动，补 `userId` 与 `await`）**
 
 Modify `app/api/sync/route.ts`（整个文件替换为）：
 
@@ -2386,7 +2386,7 @@ export async function POST() {
 }
 ```
 
-- [ ] **Step 9: 全量校验**
+- [x] **Step 9: 全量校验**
 
 Run: `npm test && npx tsc --noEmit && npm run build`
 Expected: 三条命令全部成功（`npm run build` 成功证明所有路由文件类型与导入都正确闭环）。
@@ -2396,7 +2396,7 @@ Expected: 三条命令全部成功（`npm run build` 成功证明所有路由文
 Run: `npm run db:migrate`（把 Task 2 生成的迁移应用到 `.env.local` 里配置的 Turso dev 库），然后 `npm run dev`。
 Expected: 登录后点击同步、收藏、加标签、写备注、star/unstar 均正常工作；重启 `npm run dev` 后数据仍在（证明确实落在远程 Turso，不是内存里的临时数据）。
 
-- [ ] **Step 11: 提交**
+- [x] **Step 11: 提交**
 
 ```bash
 git add app/api

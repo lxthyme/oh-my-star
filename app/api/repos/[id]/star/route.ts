@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
+import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
 import { repos } from "@/lib/db/schema"
 import { setStarred } from "@/lib/db/repos"
 import { createGitHubClient, starRepo, unstarRepo } from "@/lib/github"
 
-function getOwnerAndName(
+async function getOwnerAndName(
   repoId: number,
-): { owner: string; name: string } | null {
-  const row = db
+): Promise<{ owner: string; name: string } | null> {
+  const row = await db
     .select({ fullName: repos.fullName })
     .from(repos)
     .where(eq(repos.id, repoId))
@@ -28,19 +29,23 @@ export async function PUT(
     return NextResponse.json({ error: "id 必须是数字" }, { status: 400 })
   }
 
-  const token = process.env.GITHUB_TOKEN
-  if (!token) {
-    return NextResponse.json({ error: "GITHUB_TOKEN 未配置" }, { status: 401 })
+  const session = await auth()
+  if (!session?.accessToken || !session.userId) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  const target = getOwnerAndName(repoId)
+  const target = await getOwnerAndName(repoId)
   if (!target) {
     return NextResponse.json({ error: "仓库不存在" }, { status: 404 })
   }
 
   try {
-    await starRepo(createGitHubClient(token), target.owner, target.name)
-    setStarred(db, repoId, true)
+    await starRepo(
+      createGitHubClient(session.accessToken),
+      target.owner,
+      target.name,
+    )
+    await setStarred(db, session.userId, repoId, true)
     return NextResponse.json({ id: repoId, isStarred: true })
   } catch {
     return NextResponse.json(
@@ -60,19 +65,23 @@ export async function DELETE(
     return NextResponse.json({ error: "id 必须是数字" }, { status: 400 })
   }
 
-  const token = process.env.GITHUB_TOKEN
-  if (!token) {
-    return NextResponse.json({ error: "GITHUB_TOKEN 未配置" }, { status: 401 })
+  const session = await auth()
+  if (!session?.accessToken || !session.userId) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  const target = getOwnerAndName(repoId)
+  const target = await getOwnerAndName(repoId)
   if (!target) {
     return NextResponse.json({ error: "仓库不存在" }, { status: 404 })
   }
 
   try {
-    await unstarRepo(createGitHubClient(token), target.owner, target.name)
-    setStarred(db, repoId, false)
+    await unstarRepo(
+      createGitHubClient(session.accessToken),
+      target.owner,
+      target.name,
+    )
+    await setStarred(db, session.userId, repoId, false)
     return NextResponse.json({ id: repoId, isStarred: false })
   } catch {
     return NextResponse.json(

@@ -52,6 +52,8 @@ const NOTE_OPTIONS = [
   { label: "未备注", value: "not_noted" },
 ]
 
+const SHARED_SELECT = { showSearch: true }
+
 export default function FilterBar({
   value,
   languages,
@@ -107,12 +109,14 @@ export default function FilterBar({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Select
+          {...SHARED_SELECT}
           value={value.type}
           options={typeOptions}
           className="min-w-[120px] flex-1 sm:max-w-[140px]"
           onChange={(type) => onChange({ ...value, type })}
         />
         <Select
+          {...SHARED_SELECT}
           value={value.language}
           options={[
             { label: "语言：全部", value: "all" },
@@ -134,6 +138,7 @@ export default function FilterBar({
           onChange={(note) => onChange({ ...value, note })}
         />
         <Select
+          {...SHARED_SELECT}
           value={value.tag}
           options={tagOptions}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"

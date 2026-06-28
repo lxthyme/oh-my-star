@@ -13,6 +13,26 @@ import NoteEditor from "./NoteEditor"
 
 const { Text, Paragraph, Link } = Typography
 
+function Highlight({ text, keyword }: { text: string; keyword?: string }) {
+  if (!keyword) return <>{text}</>
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"))
+  const lower = keyword.toLowerCase()
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === lower ? (
+          <Text key={i} mark style={{ padding: 0 }}>
+            {part}
+          </Text>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  )
+}
+
 export interface RepoCardData {
   id: number
   fullName: string
@@ -33,6 +53,7 @@ export interface RepoCardData {
 interface RepoCardProps {
   repo: RepoCardData
   allTags: TagOption[]
+  keyword?: string
   onToggleFavorite: (id: number, next: boolean) => Promise<void>
   onToggleStar: (id: number, next: boolean) => Promise<void>
   onSaveNote: (id: number, note: string) => Promise<void>
@@ -50,6 +71,7 @@ function languageColor(language: string) {
 export default function RepoCard({
   repo,
   allTags,
+  keyword,
   onToggleFavorite,
   onToggleStar,
   onSaveNote,
@@ -68,7 +90,7 @@ export default function RepoCard({
             rel="noopener noreferrer"
             strong
           >
-            {repo.fullName}
+            <Highlight text={repo.fullName} keyword={keyword} />
           </Link>
           <Space size={8}>
             <Button
@@ -109,10 +131,10 @@ export default function RepoCard({
         {repo.description && (
           <Paragraph
             type="secondary"
-            ellipsis={{ rows: 2 }}
+            ellipsis={{ rows: 2, tooltip: repo.description }}
             style={{ marginBottom: 0 }}
           >
-            {repo.description}
+            <Highlight text={repo.description} keyword={keyword} />
           </Paragraph>
         )}
 

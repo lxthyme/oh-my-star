@@ -204,6 +204,7 @@ export default function RepoList({ source }: RepoListProps) {
               <RepoCard
                 repo={repo}
                 allTags={allTags}
+                keyword={filters.search || undefined}
                 onToggleFavorite={handleToggleFavorite}
                 onToggleStar={handleToggleStar}
                 onSaveNote={handleSaveNote}

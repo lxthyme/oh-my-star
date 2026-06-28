@@ -52,7 +52,7 @@ const NOTE_OPTIONS = [
   { label: "未备注", value: "not_noted" },
 ]
 
-const SHARED_SELECT = { showSearch: true }
+const SHARED_SELECT = { showSearch: true, allowClear: true }
 
 export default function FilterBar({
   value,
@@ -113,7 +113,7 @@ export default function FilterBar({
           value={value.type}
           options={typeOptions}
           className="min-w-[120px] flex-1 sm:max-w-[140px]"
-          onChange={(type) => onChange({ ...value, type })}
+          onChange={(type) => onChange({ ...value, type: type ?? "all" })}
         />
         <Select
           {...SHARED_SELECT}
@@ -123,33 +123,36 @@ export default function FilterBar({
             ...languages.map((lang) => ({ label: lang, value: lang })),
           ]}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"
-          onChange={(language) => onChange({ ...value, language })}
+          onChange={(language) => onChange({ ...value, language: language ?? "all" })}
         />
         <Select
+          {...SHARED_SELECT}
           value={value.favorite}
           options={FAVORITE_OPTIONS}
           className="min-w-[120px] flex-1 sm:max-w-[140px]"
-          onChange={(favorite) => onChange({ ...value, favorite })}
+          onChange={(favorite) => onChange({ ...value, favorite: favorite ?? "all" })}
         />
         <Select
+          {...SHARED_SELECT}
           value={value.note}
           options={NOTE_OPTIONS}
           className="min-w-[120px] flex-1 sm:max-w-[140px]"
-          onChange={(note) => onChange({ ...value, note })}
+          onChange={(note) => onChange({ ...value, note: note ?? "all" })}
         />
         <Select
           {...SHARED_SELECT}
           value={value.tag}
           options={tagOptions}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"
-          onChange={(tag) => onChange({ ...value, tag })}
+          onChange={(tag) => onChange({ ...value, tag: tag ?? "all" })}
         />
         <Select
+          {...SHARED_SELECT}
           value={value.sort}
           options={sortOptions}
           suffixIcon={<SortAscendingOutlined />}
           className="ml-auto min-w-[140px] sm:max-w-[170px]"
-          onChange={(sort) => onChange({ ...value, sort })}
+          onChange={(sort) => onChange({ ...value, sort: sort ?? "updated" })}
         />
       </div>
     </div>

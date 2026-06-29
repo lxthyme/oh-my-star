@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Col, Pagination, Row, Spin, message, theme } from "antd"
+import { Col, Empty, Pagination, Row, Spin, message, theme } from "antd"
 import FilterBar, { type FilterValues } from "./FilterBar"
 import RepoCard, { type RepoCardData } from "./RepoCard"
 import type { TagOption } from "./TagSelect"
@@ -198,21 +198,25 @@ export default function RepoList({ source }: RepoListProps) {
       </div>
 
       <Spin spinning={loading}>
-        <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, 16]}>
-          {data?.items.map((repo) => (
-            <Col key={repo.id} xs={24} sm={12} lg={8}>
-              <RepoCard
-                repo={repo}
-                allTags={allTags}
-                keyword={filters.search || undefined}
-                onToggleFavorite={handleToggleFavorite}
-                onToggleStar={handleToggleStar}
-                onSaveNote={handleSaveNote}
-                onChangeTags={handleChangeTags}
-              />
-            </Col>
-          ))}
-        </Row>
+        {!loading && data && data.items.length === 0 ? (
+          <Empty style={{ margin: "80px 0" }} />
+        ) : (
+          <Row gutter={[{ xs: 8, sm: 16, lg: 24 }, 16]}>
+            {data?.items.map((repo) => (
+              <Col key={repo.id} xs={24} sm={12} lg={8}>
+                <RepoCard
+                  repo={repo}
+                  allTags={allTags}
+                  keyword={filters.search || undefined}
+                  onToggleFavorite={handleToggleFavorite}
+                  onToggleStar={handleToggleStar}
+                  onSaveNote={handleSaveNote}
+                  onChangeTags={handleChangeTags}
+                />
+              </Col>
+            ))}
+          </Row>
+        )}
       </Spin>
 
       {data && <div style={{ height: 64 }} />}

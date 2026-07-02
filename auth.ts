@@ -5,7 +5,11 @@ import type { JWT } from "next-auth/jwt"
 import { isAllowedGitHubLogin } from "./lib/auth/allowlist"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [GitHub],
+  providers: [
+    GitHub({
+      authorization: { params: { scope: "read:user user:email repo" } },
+    }),
+  ],
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   callbacks: {

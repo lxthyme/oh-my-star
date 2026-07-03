@@ -10,6 +10,7 @@ export type RepoTypeFilter =
   | "archived"
   | "mirrors"
   | "templates"
+  | "private"
 export type RepoSort = "updated" | "name" | "stars" | "starred_at"
 export type TriStateFilter = "all" | "favorite" | "not_favorite"
 export type NoteFilterValue = "all" | "noted" | "not_noted"
@@ -44,6 +45,7 @@ export interface RepoListItem {
   fork: boolean
   private: boolean
   isTemplate: boolean
+  mirror: boolean
   pushedAt: string | null
   updatedAt: string | null
   isOwned: boolean
@@ -95,6 +97,8 @@ function buildWhere(userId: number, params: ListReposParams): SQL | undefined {
     conditions.push(sql`${repos.mirrorUrl} IS NOT NULL`)
   } else if (params.type === "templates") {
     conditions.push(eq(repos.isTemplate, 1))
+  } else if (params.type === "private") {
+    conditions.push(eq(repos.private, 1))
   }
 
   if (params.language && params.language !== "all") {
@@ -222,6 +226,7 @@ export async function listRepos(
       fork: repo.fork === 1,
       private: repo.private === 1,
       isTemplate: repo.isTemplate === 1,
+      mirror: repo.mirrorUrl !== null,
       pushedAt: repo.pushedAt,
       updatedAt: repo.updatedAt,
       isOwned: userRepo.isOwned === 1,

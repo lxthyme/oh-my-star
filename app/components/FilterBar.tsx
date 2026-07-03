@@ -7,7 +7,14 @@ import type { TagOption } from "./TagSelect"
 export interface FilterValues {
   search: string
   searchDescription: "true" | "false"
-  type: "all" | "sources" | "forks" | "archived" | "mirrors" | "templates"
+  type:
+    | "all"
+    | "sources"
+    | "forks"
+    | "archived"
+    | "mirrors"
+    | "templates"
+    | "private"
   language: string
   sort: "updated" | "name" | "stars" | "starred_at"
   favorite: "all" | "favorite" | "not_favorite"
@@ -30,6 +37,7 @@ const TYPE_OPTIONS_OWNED = [
   { label: "Archived", value: "archived" },
   { label: "Mirrors", value: "mirrors" },
   { label: "Templates", value: "templates" },
+  { label: "Private", value: "private" },
 ]
 
 const TYPE_OPTIONS_STARRED = [
@@ -38,6 +46,7 @@ const TYPE_OPTIONS_STARRED = [
   { label: "Forks", value: "forks" },
   { label: "Mirrors", value: "mirrors" },
   { label: "Templates", value: "templates" },
+  { label: "Private", value: "private" },
 ]
 
 const FAVORITE_OPTIONS = [

@@ -5,6 +5,7 @@ import {
   ForkOutlined,
   HeartFilled,
   HeartOutlined,
+  LockOutlined,
   StarFilled,
   StarOutlined,
 } from "@ant-design/icons"
@@ -43,6 +44,9 @@ export interface RepoCardData {
   forksCount: number
   archived: boolean
   fork: boolean
+  private: boolean
+  isTemplate: boolean
+  mirror: boolean
   isOwned: boolean
   isStarred: boolean
   isFavorite: boolean
@@ -160,8 +164,15 @@ export default function RepoCard({
           <Text type="secondary">
             <ForkOutlined /> {repo.forksCount}
           </Text>
+          {repo.private && (
+            <AntTag color="red" icon={<LockOutlined />}>
+              Private
+            </AntTag>
+          )}
           {repo.archived && <AntTag color="warning">Archived</AntTag>}
           {repo.fork && <AntTag color="processing">Fork</AntTag>}
+          {repo.isTemplate && <AntTag color="purple">Template</AntTag>}
+          {repo.mirror && <AntTag color="gold">Mirror</AntTag>}
         </Space>
 
         <TagSelect

@@ -191,20 +191,47 @@ export default function AppShell({ children }: React.PropsWithChildren) {
               paddingInline: 16,
             }}
           >
-            <Link
-              href="/repos"
+            <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                color: "#fff",
-                fontWeight: 600,
                 flexShrink: 0,
               }}
             >
-              <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
-              <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
-            </Link>
+              <Link
+                href="/repos"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  color: "#fff",
+                  fontWeight: 600,
+                }}
+              >
+                <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
+                <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
+              </Link>
+              <Tooltip
+                title={`v${process.env.APP_VERSION} · ${process.env.APP_GIT_SHA}`}
+              >
+                <a
+                  href={`https://github.com/lxthyme/oh-my-star/commit/${process.env.APP_GIT_SHA}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    whiteSpace: "nowrap",
+                    fontSize: 12,
+                    opacity: 0.6,
+                    color: "#fff",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  v{process.env.APP_VERSION}
+                </a>
+              </Tooltip>
+            </div>
             <NavMenu />
             <SyncButton />
             <Dropdown

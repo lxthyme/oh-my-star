@@ -7,6 +7,7 @@ import {
   listOwnedRepos,
   listStarredRepos,
 } from "@/lib/github"
+import { apiErrorResponse } from "@/lib/api-error"
 
 export async function GET() {
   const session = await auth()
@@ -14,9 +15,13 @@ export async function GET() {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  return NextResponse.json({
-    lastSyncedAt: await getLastSyncedAt(db, session.userId),
-  })
+  try {
+    return NextResponse.json({
+      lastSyncedAt: await getLastSyncedAt(db, session.userId),
+    })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }
 
 export async function POST() {
@@ -48,6 +53,6 @@ export async function POST() {
         { status: 429 },
       )
     }
-    return NextResponse.json({ error: "同步失败，请稍后重试" }, { status: 502 })
+    return apiErrorResponse(error, 502)
   }
 }

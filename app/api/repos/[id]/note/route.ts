@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
 import { setNote } from "@/lib/db/user-data"
+import { apiErrorResponse } from "@/lib/api-error"
 
 export async function PATCH(
   request: NextRequest,
@@ -23,6 +24,10 @@ export async function PATCH(
     return NextResponse.json({ error: "note 必须是字符串" }, { status: 400 })
   }
 
-  await setNote(db, session.userId, repoId, body.note)
-  return NextResponse.json({ id: repoId, note: body.note })
+  try {
+    await setNote(db, session.userId, repoId, body.note)
+    return NextResponse.json({ id: repoId, note: body.note })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }

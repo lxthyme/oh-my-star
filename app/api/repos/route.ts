@@ -6,6 +6,7 @@ import {
   listDistinctLanguages,
   type ListReposParams,
 } from "@/lib/db/repos"
+import { apiErrorResponse } from "@/lib/api-error"
 
 export async function GET(request: NextRequest) {
   const session = await auth()
@@ -42,7 +43,11 @@ export async function GET(request: NextRequest) {
     perPage: sp.get("perPage") ? Number(sp.get("perPage")) : undefined,
   }
 
-  const result = await listRepos(db, session.userId, params)
-  const languages = await listDistinctLanguages(db, session.userId, source)
-  return NextResponse.json({ ...result, languages })
+  try {
+    const result = await listRepos(db, session.userId, params)
+    const languages = await listDistinctLanguages(db, session.userId, source)
+    return NextResponse.json({ ...result, languages })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }

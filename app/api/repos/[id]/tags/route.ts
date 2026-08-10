@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
 import { getRepoTags, setRepoTags } from "@/lib/db/tags"
+import { apiErrorResponse } from "@/lib/api-error"
 
 export async function GET(
   _request: NextRequest,
@@ -18,9 +19,13 @@ export async function GET(
     return NextResponse.json({ error: "id 必须是数字" }, { status: 400 })
   }
 
-  return NextResponse.json({
-    tags: await getRepoTags(db, session.userId, repoId),
-  })
+  try {
+    return NextResponse.json({
+      tags: await getRepoTags(db, session.userId, repoId),
+    })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }
 
 export async function PUT(
@@ -46,6 +51,10 @@ export async function PUT(
     )
   }
 
-  const tags = await setRepoTags(db, session.userId, repoId, body.tagNames)
-  return NextResponse.json({ tags })
+  try {
+    const tags = await setRepoTags(db, session.userId, repoId, body.tagNames)
+    return NextResponse.json({ tags })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }

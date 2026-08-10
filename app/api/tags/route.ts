@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
 import { listTags, createTag } from "@/lib/db/tags"
+import { apiErrorResponse } from "@/lib/api-error"
 
 export async function GET() {
   const session = await auth()
@@ -9,7 +10,11 @@ export async function GET() {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  return NextResponse.json({ tags: await listTags(db, session.userId) })
+  try {
+    return NextResponse.json({ tags: await listTags(db, session.userId) })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -23,6 +28,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "name 不能为空" }, { status: 400 })
   }
 
-  const tag = await createTag(db, session.userId, body.name.trim())
-  return NextResponse.json(tag, { status: 201 })
+  try {
+    const tag = await createTag(db, session.userId, body.name.trim())
+    return NextResponse.json(tag, { status: 201 })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }

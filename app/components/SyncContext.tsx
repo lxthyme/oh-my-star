@@ -8,6 +8,7 @@ import {
   useState,
 } from "react"
 import { message } from "antd"
+import { fetchJson } from "../lib/api-client"
 
 interface RepoCounts {
   owned: number
@@ -32,15 +33,21 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
   const [repoCounts, setRepoCounts] = useState<RepoCounts | null>(null)
 
   const refreshCounts = useCallback(async () => {
-    const res = await fetch("/api/repos/counts")
-    const json = await res.json()
-    setRepoCounts(json)
+    try {
+      setRepoCounts(await fetchJson<RepoCounts>("/api/repos/counts"))
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "获取仓库数量失败")
+    }
   }, [])
 
   useEffect(() => {
-    fetch("/api/sync")
-      .then((res) => res.json())
+    fetchJson<{ lastSyncedAt?: string | null }>("/api/sync")
       .then((json) => setLastSyncedAt(json.lastSyncedAt ?? null))
+      .catch((error: unknown) =>
+        message.error(
+          error instanceof Error ? error.message : "获取同步状态失败",
+        ),
+      )
     // 取数后必然 setState，react-hooks/set-state-in-effect 对此场景误报
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshCounts()
@@ -49,18 +56,18 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
   const triggerSync = useCallback(async () => {
     setSyncing(true)
     try {
-      const res = await fetch("/api/sync", { method: "POST" })
-      const json = await res.json()
-      if (!res.ok) {
-        message.error(json.error ?? "同步失败")
-        return
-      }
+      const json = await fetchJson<{
+        ownedCount: number
+        starredCount: number
+      }>("/api/sync", { method: "POST" })
       message.success(
         `同步完成：owned ${json.ownedCount} / starred ${json.starredCount}`,
       )
       setLastSyncedAt(new Date().toISOString())
       setSyncVersion((v) => v + 1)
       await refreshCounts()
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "同步失败")
     } finally {
       setSyncing(false)
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
 import { setFavorite } from "@/lib/db/user-data"
+import { apiErrorResponse } from "@/lib/api-error"
 
 export async function PATCH(
   request: NextRequest,
@@ -26,6 +27,10 @@ export async function PATCH(
     )
   }
 
-  await setFavorite(db, session.userId, repoId, body.isFavorite)
-  return NextResponse.json({ id: repoId, isFavorite: body.isFavorite })
+  try {
+    await setFavorite(db, session.userId, repoId, body.isFavorite)
+    return NextResponse.json({ id: repoId, isFavorite: body.isFavorite })
+  } catch (error) {
+    return apiErrorResponse(error)
+  }
 }

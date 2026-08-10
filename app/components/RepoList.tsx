@@ -7,6 +7,7 @@ import FilterBar, { type FilterValues } from "./FilterBar"
 import RepoCard, { type RepoCardData } from "./RepoCard"
 import type { TagOption } from "./TagSelect"
 import { useSync } from "./SyncContext"
+import { fetchJson, parseJsonResponse } from "../lib/api-client"
 
 interface RepoListProps {
   source: "owned" | "starred"
@@ -70,9 +71,12 @@ export default function RepoList({ source }: RepoListProps) {
   const [allTags, setAllTags] = useState<TagOption[]>([])
 
   const fetchTags = useCallback(async () => {
-    const res = await fetch("/api/tags")
-    const json = await res.json()
-    setAllTags(json.tags)
+    try {
+      const json = await fetchJson<{ tags: TagOption[] }>("/api/tags")
+      setAllTags(json.tags)
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "获取标签失败")
+    }
   }, [])
 
   const fetchRepos = useCallback(async () => {
@@ -96,9 +100,9 @@ export default function RepoList({ source }: RepoListProps) {
         qs.set("tagId", filters.tag)
       }
 
-      const res = await fetch(`/api/repos?${qs.toString()}`)
-      const json = await res.json()
-      setData(json)
+      setData(await fetchJson<ReposResponse>(`/api/repos?${qs.toString()}`))
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "获取仓库失败")
     } finally {
       setLoading(false)
     }
@@ -140,17 +144,18 @@ export default function RepoList({ source }: RepoListProps) {
     method: string,
     body?: unknown,
   ): Promise<boolean> => {
-    const res = await fetch(path, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    })
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}))
-      message.error(json.error ?? "操作失败")
+    try {
+      const res = await fetch(path, {
+        method,
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      })
+      if (!res.ok) await parseJsonResponse(res)
+      return true
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "操作失败")
       return false
     }
-    return true
   }
 
   const handleToggleFavorite = async (id: number, next: boolean) => {

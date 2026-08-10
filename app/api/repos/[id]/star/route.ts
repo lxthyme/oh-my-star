@@ -5,6 +5,7 @@ import { db } from "@/lib/db/client"
 import { repos } from "@/lib/db/schema"
 import { setStarred } from "@/lib/db/repos"
 import { createGitHubClient, starRepo, unstarRepo } from "@/lib/github"
+import { apiErrorResponse } from "@/lib/api-error"
 
 async function getOwnerAndName(
   repoId: number,
@@ -34,12 +35,11 @@ export async function PUT(
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  const target = await getOwnerAndName(repoId)
-  if (!target) {
-    return NextResponse.json({ error: "仓库不存在" }, { status: 404 })
-  }
-
   try {
+    const target = await getOwnerAndName(repoId)
+    if (!target) {
+      return NextResponse.json({ error: "仓库不存在" }, { status: 404 })
+    }
     await starRepo(
       createGitHubClient(session.accessToken),
       target.owner,
@@ -47,11 +47,8 @@ export async function PUT(
     )
     await setStarred(db, session.userId, repoId, true)
     return NextResponse.json({ id: repoId, isStarred: true })
-  } catch {
-    return NextResponse.json(
-      { error: "Star 失败，请稍后重试" },
-      { status: 502 },
-    )
+  } catch (error) {
+    return apiErrorResponse(error, 502)
   }
 }
 
@@ -70,12 +67,11 @@ export async function DELETE(
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  const target = await getOwnerAndName(repoId)
-  if (!target) {
-    return NextResponse.json({ error: "仓库不存在" }, { status: 404 })
-  }
-
   try {
+    const target = await getOwnerAndName(repoId)
+    if (!target) {
+      return NextResponse.json({ error: "仓库不存在" }, { status: 404 })
+    }
     await unstarRepo(
       createGitHubClient(session.accessToken),
       target.owner,
@@ -83,10 +79,7 @@ export async function DELETE(
     )
     await setStarred(db, session.userId, repoId, false)
     return NextResponse.json({ id: repoId, isStarred: false })
-  } catch {
-    return NextResponse.json(
-      { error: "Unstar 失败，请稍后重试" },
-      { status: 502 },
-    )
+  } catch (error) {
+    return apiErrorResponse(error, 502)
   }
 }

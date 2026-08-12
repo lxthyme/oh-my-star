@@ -1,7 +1,8 @@
 "use client"
 
-import { Button, Card, Space, Tag as AntTag, Typography } from "antd"
+import { Button, Card, Space, Tag as AntTag, Typography, theme } from "antd"
 import {
+  FileTextOutlined,
   ForkOutlined,
   HeartFilled,
   HeartOutlined,
@@ -81,6 +82,8 @@ export default function RepoCard({
   onSaveNote,
   onChangeTags,
 }: RepoCardProps) {
+  const { token } = theme.useToken()
+
   return (
     <Card size="small" className="repo-card" style={{ height: "100%" }}>
       <Space orientation="vertical" size={8} style={{ width: "100%" }}>
@@ -180,6 +183,26 @@ export default function RepoCard({
           value={repo.tags.map((t) => t.name)}
           onChange={(tagNames) => onChangeTags(repo.id, tagNames)}
         />
+
+        {repo.note && (
+          <div
+            style={{
+              width: "100%",
+              padding: `${token.paddingXXS}px ${token.paddingXS}px`,
+              borderRadius: token.borderRadiusSM,
+              background: token.colorFillTertiary,
+            }}
+          >
+            <Paragraph
+              type="secondary"
+              ellipsis={{ rows: 2, tooltip: repo.note }}
+              style={{ marginBottom: 0 }}
+            >
+              <FileTextOutlined style={{ marginRight: token.marginXS }} />
+              {repo.note}
+            </Paragraph>
+          </div>
+        )}
       </Space>
     </Card>
   )

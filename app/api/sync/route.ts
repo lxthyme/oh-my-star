@@ -43,13 +43,13 @@ export async function POST() {
     const status = (error as { status?: number }).status
     if (status === 401) {
       return NextResponse.json(
-        { error: "GitHub 授权已失效，请重新登录" },
+        { error: "GitHub 授权已失效，请重新登录: \(error?.msg)" },
         { status: 401 },
       )
     }
     if (status === 403) {
       return NextResponse.json(
-        { error: "已达 GitHub API 限流，请稍后重试" },
+        { error: "已达 GitHub API 限流，请稍后重试: \(error?.msg)" },
         { status: 429 },
       )
     }

@@ -34,9 +34,18 @@ function readGitValue(args, cwd) {
   }
 }
 
-export function incrementPatchVersion(version) {
+export function incrementVersion(version, releaseType = "patch") {
   const [, major, minor, patch] = requireVersion(version)
-  return `${major}.${minor}.${Number(patch) + 1}`
+  switch (releaseType) {
+    case "patch":
+      return `${major}.${minor}.${Number(patch) + 1}`
+    case "minor":
+      return `${major}.${Number(minor) + 1}.0`
+    case "major":
+      return `${Number(major) + 1}.0.0`
+    default:
+      throw new Error(`Invalid release type: ${releaseType}`)
+  }
 }
 
 export function readPackageVersion(cwd = process.cwd()) {

@@ -1,12 +1,13 @@
 {
   "name": "next-github-star",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "dev": "node scripts/run-with-app-metadata.mjs next dev --port 6602",
     "build": "node scripts/build-with-version.mjs",
     "start": "next start",
     "prd": "node scripts/deploy-production.mjs",
+    "version:commit": "node scripts/version-commit.mjs",
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

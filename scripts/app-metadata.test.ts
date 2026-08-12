@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
 import {
-  incrementPatchVersion,
+  incrementVersion,
   persistPackageVersion,
   readPackageVersion,
   resolveAppMetadata,
@@ -34,17 +34,23 @@ function createManifestFixture({ validLockfile = true } = {}) {
   return cwd
 }
 
-describe("incrementPatchVersion", () => {
-  it("increments the patch component", () => {
-    expect(incrementPatchVersion("0.1.0")).toBe("0.1.1")
-    expect(incrementPatchVersion("2.9.99")).toBe("2.9.100")
+describe("incrementVersion", () => {
+  it("increments the selected release component", () => {
+    expect(incrementVersion("1.2.3")).toBe("1.2.4")
+    expect(incrementVersion("1.2.3", "patch")).toBe("1.2.4")
+    expect(incrementVersion("1.2.3", "minor")).toBe("1.3.0")
+    expect(incrementVersion("1.2.3", "major")).toBe("2.0.0")
+  })
+
+  it("rejects unsupported release types", () => {
+    expect(() => incrementVersion("1.2.3", "invalid")).toThrow(
+      "Invalid release type",
+    )
   })
 
   it("rejects versions outside strict three-part SemVer", () => {
-    expect(() => incrementPatchVersion("1.0")).toThrow(
-      "Invalid package version",
-    )
-    expect(() => incrementPatchVersion("1.0.0-beta.1")).toThrow(
+    expect(() => incrementVersion("1.0")).toThrow("Invalid package version")
+    expect(() => incrementVersion("1.0.0-beta.1")).toThrow(
       "Invalid package version",
     )
   })

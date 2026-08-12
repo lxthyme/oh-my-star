@@ -1,5 +1,5 @@
 import {
-  incrementPatchVersion,
+  incrementVersion,
   persistPackageVersion,
   readPackageVersion,
   resolveAppMetadata,
@@ -8,7 +8,8 @@ import {
 
 // 部署包装器会预先注入版本；远端 build 必须直接消费它，避免同一次部署再次自增。
 const explicitVersion = process.env.APP_VERSION?.trim()
-const version = explicitVersion ?? incrementPatchVersion(readPackageVersion())
+const version =
+  explicitVersion ?? incrementVersion(readPackageVersion(), "patch")
 const metadata = resolveAppMetadata({ version })
 const status = runCommand("next", ["build"], {
   ...process.env,

@@ -1,5 +1,5 @@
 import {
-  incrementPatchVersion,
+  incrementVersion,
   persistPackageVersion,
   readPackageVersion,
   resolveAppMetadata,
@@ -7,7 +7,8 @@ import {
 } from "./app-metadata.mjs"
 
 const explicitVersion = process.env.APP_VERSION?.trim()
-const version = explicitVersion ?? incrementPatchVersion(readPackageVersion())
+const version =
+  explicitVersion ?? incrementVersion(readPackageVersion(), "patch")
 const metadata = resolveAppMetadata({ version })
 // 显式传给远端 build 后，它只消费该版本；部署成功再由本地包装器持久化一次。
 const buildEnvArgs = Object.entries(metadata).flatMap(([key, value]) => [

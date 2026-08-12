@@ -13,6 +13,7 @@
 ## 快速导航
 
 - [通用模块 API](#通用模块-api)
+- [独立版本提交](#独立版本提交)
 - [Next.js 项目](#nextjs-项目)
 - [Vue + Vite 项目](#vue--vite-项目)
 - [Vercel 部署](#vercel-部署)
@@ -29,6 +30,7 @@
 | `scripts/run-with-app-metadata.mjs` | 是           | 为开发命令注入当前元数据，不递增版本                           |
 | `scripts/build-with-version.mjs`    | Next.js 专用 | 执行 `next build`，成功后持久化 patch 版本                     |
 | `scripts/deploy-production.mjs`     | Vercel 专用  | 向 Vercel 远端构建传入元数据，部署成功后持久化本地版本         |
+| `scripts/version-commit.mjs`        | npm + Git    | 按 release type 更新 manifest 并创建独立的本地 release commit  |
 
 通用核心当前面向 npm 项目，持久化版本时会同步修改：
 
@@ -44,7 +46,7 @@
 
 | 接口                                   | 作用                                | 失败行为                               |
 | -------------------------------------- | ----------------------------------- | -------------------------------------- |
-| `incrementPatchVersion(version)`       | 将严格三段式版本的 patch 加一       | 非 `x.y.z` 格式时抛错                  |
+| `incrementVersion(version, type?)`     | 按 patch、minor 或 major 递增版本   | 版本格式或 release type 无效时抛错     |
 | `readPackageVersion(cwd?)`             | 读取并校验 `package.json.version`   | 文件无效或版本格式错误时抛错           |
 | `readGitMetadata(cwd?)`                | 读取短 SHA 和最新 commit 标题       | Git 不可用时返回空值，由解析层继续回退 |
 | `resolveAppMetadata(options)`          | 按统一优先级生成三个 `APP_*`        | 没有 Git 或 CI 值时使用 `unknown`      |
@@ -96,9 +98,33 @@ Git 元数据解析顺序：
 | `npm run build`                   | 下一 patch 版本                    | 构建成功后写回        |
 | `APP_VERSION=2.0.0 npm run build` | 显式版本 `2.0.0`                   | 否                    |
 | `npm run prd`                     | 下一 patch 版本                    | 部署成功后写回        |
+| `npm run version:commit -- minor` | 下一 minor 版本                    | 写回并创建本地 commit |
 | 直接运行 `vercel deploy --prod`   | Vercel 临时目录中的下一 patch 版本 | 不会写回本地或 Git    |
 
 失败的构建或部署不会消耗版本号。包装器只有在子进程退出码为 `0` 时才更新两个 manifest。
+
+## 独立版本提交
+
+`version:commit` 只更新版本并创建本地 commit，不执行 build、deploy、tag 或 push。
+
+```bash
+npm run version:commit          # 0.1.2 → 0.1.3
+npm run version:commit -- patch # 0.1.2 → 0.1.3
+npm run version:commit -- minor # 0.1.2 → 0.2.0
+npm run version:commit -- major # 0.1.2 → 1.0.0
+```
+
+commit message 固定为：
+
+```text
+chore(release): v0.1.3
+```
+
+执行前，`package.json` 和 `package-lock.json` 在工作区及暂存区都必须干净；否则命令会拒绝运行，不会覆盖或继续递增已有修改。仓库中的其他文件可以处于已修改或已暂存状态。
+
+release commit 使用 `git commit --only`，因此只包含两个 manifest。其他已暂存内容不会进入该 commit，并且在命令完成后仍保持暂存。
+
+如果 `git commit` 或 Git hook 失败，递增后的 manifest 会保留在工作区供检查或重试，脚本不会自动回滚。重试前需要先处理失败原因和目标文件状态。
 
 ## Next.js 项目
 
@@ -111,7 +137,8 @@ scripts/
 ├── app-metadata.mjs
 ├── build-with-version.mjs
 ├── deploy-production.mjs
-└── run-with-app-metadata.mjs
+├── run-with-app-metadata.mjs
+└── version-commit.mjs
 ```
 
 如果不使用 Vercel，可以不复制 `deploy-production.mjs`。
@@ -124,7 +151,8 @@ scripts/
     "dev": "node scripts/run-with-app-metadata.mjs next dev",
     "build": "node scripts/build-with-version.mjs",
     "start": "next start",
-    "prd": "node scripts/deploy-production.mjs"
+    "prd": "node scripts/deploy-production.mjs",
+    "version:commit": "node scripts/version-commit.mjs"
   }
 }
 ```
@@ -210,14 +238,15 @@ Vite 会在开发时提供这些常量，并在生产构建时进行静态替换
 scripts/
 ├── app-metadata.mjs
 ├── deploy-production.mjs
-└── run-with-app-metadata.mjs
+├── run-with-app-metadata.mjs
+└── version-commit.mjs
 ```
 
 然后为 Vite 新建 `scripts/build-vite-with-version.mjs`：
 
 ```js
 import {
-  incrementPatchVersion,
+  incrementVersion,
   persistPackageVersion,
   readPackageVersion,
   resolveAppMetadata,
@@ -226,7 +255,8 @@ import {
 
 // 部署包装器会预先注入版本；远端 build 直接消费它，避免同一次部署再次自增。
 const explicitVersion = process.env.APP_VERSION?.trim()
-const version = explicitVersion ?? incrementPatchVersion(readPackageVersion())
+const version =
+  explicitVersion ?? incrementVersion(readPackageVersion(), "patch")
 const metadata = resolveAppMetadata({ version })
 const status = runCommand("vite", ["build"], {
   ...process.env,
@@ -249,7 +279,8 @@ process.exitCode = status
     "dev": "node scripts/run-with-app-metadata.mjs vite",
     "build": "node scripts/build-vite-with-version.mjs",
     "preview": "vite preview",
-    "prd": "node scripts/deploy-production.mjs"
+    "prd": "node scripts/deploy-production.mjs",
+    "version:commit": "node scripts/version-commit.mjs"
   }
 }
 ```

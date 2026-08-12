@@ -1,11 +1,13 @@
 # next-github-star
 
+## 开发与构建
 
-# 发布前
-  npm version patch   # 0.1.0 → 0.1.1   (修 bug)
-  npm version minor   # 0.1.0 → 0.2.0   (新功能)
-  npm version major   # 0.1.0 → 1.0.0   (破坏性变更)
-  # 该命令会自动:改 package.json + commit + 打 git tag
+```bash
+npm run dev
+npm run build
+npm run prd # 实际发布到 Vercel production
+```
 
-  # 推送到远端
-  git push --follow-tags
+`dev` 使用当前版本；`build` 和 `prd` 在成功后自动递增并同步 npm manifest 中的 patch 版本。脚本不会自动 commit、tag 或 push。
+
+Next.js、Vue + Vite、Vercel 和其他 CI/CD 平台的配置与排障说明见[构建版本元数据脚本使用指南](docs/build-version-metadata.md)。

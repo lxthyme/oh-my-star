@@ -213,7 +213,7 @@ export default function AppShell({ children }: React.PropsWithChildren) {
                 <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
               </Link>
               <Tooltip
-                title={`v${process.env.APP_VERSION} · ${process.env.APP_GIT_SHA}`}
+                title={`v${process.env.APP_VERSION} · ${process.env.APP_GIT_SHA} · ${process.env.APP_GIT_MESSAGE}`}
               >
                 <a
                   href={`https://github.com/lxthyme/oh-my-star/commit/${process.env.APP_GIT_SHA}`}

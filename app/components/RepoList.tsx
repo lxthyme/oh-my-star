@@ -75,7 +75,7 @@ export default function RepoList({ source }: RepoListProps) {
       const json = await fetchJson<{ tags: TagOption[] }>("/api/tags")
       setAllTags(json.tags)
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "获取标签失败")
+      message.error(error instanceof Error ? `获取标签失败: ${error.message}` : "获取标签失败")
     }
   }, [])
 
@@ -102,7 +102,7 @@ export default function RepoList({ source }: RepoListProps) {
 
       setData(await fetchJson<ReposResponse>(`/api/repos?${qs.toString()}`))
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "获取仓库失败")
+      message.error(error instanceof Error ? `获取仓库失败: ${error.message}` : "获取仓库失败")
     } finally {
       setLoading(false)
     }
@@ -153,7 +153,7 @@ export default function RepoList({ source }: RepoListProps) {
       if (!res.ok) await parseJsonResponse(res)
       return true
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "操作失败")
+      message.error(error instanceof Error ? `操作失败: ${error.message}` : "操作失败")
       return false
     }
   }

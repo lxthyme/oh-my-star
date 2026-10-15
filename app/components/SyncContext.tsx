@@ -36,7 +36,7 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
     try {
       setRepoCounts(await fetchJson<RepoCounts>("/api/repos/counts"))
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "获取仓库数量失败")
+      message.error(error instanceof Error ? `获取仓库数量失败: ${error.message}` : "获取仓库数量失败")
     }
   }, [])
 
@@ -45,7 +45,7 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
       .then((json) => setLastSyncedAt(json.lastSyncedAt ?? null))
       .catch((error: unknown) =>
         message.error(
-          error instanceof Error ? error.message : "获取同步状态失败",
+          error instanceof Error ? `获取同步状态失败: ${error.message}` : "获取同步状态失败",
         ),
       )
     // 取数后必然 setState，react-hooks/set-state-in-effect 对此场景误报
@@ -67,7 +67,7 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
       setSyncVersion((v) => v + 1)
       await refreshCounts()
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "同步失败")
+      message.error(error instanceof Error ? `同步失败: ${error.message}` : "同步失败")
     } finally {
       setSyncing(false)
     }

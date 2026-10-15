@@ -61,7 +61,12 @@ const NOTE_OPTIONS = [
   { label: "未备注", value: "not_noted" },
 ]
 
-const SHARED_SELECT = { showSearch: true, allowClear: true }
+const SHARED_SELECT = {
+  // 必须指定 optionFilterProp：默认值会按 option.value 过滤，
+  // 而这些下拉框的 value 是英文/数字 id，label 才是用户看到的文案
+  showSearch: { optionFilterProp: "label" },
+  allowClear: true,
+}
 
 export default function FilterBar({
   value,

@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest"
 import { createTestDb } from "./test-helpers"
 import type { AppDatabase } from "./client"
 import { repos, userRepos } from "./schema"
-import { listTags, createTag, getRepoTags, setRepoTags } from "./tags"
+import {
+  listTags,
+  createTag,
+  findTagByName,
+  updateTag,
+  deleteTag,
+  getRepoTags,
+  setRepoTags,
+} from "./tags"
 
 const TEST_USER_ID = 1001
 
@@ -38,8 +46,27 @@ describe("createTag", () => {
     const tag = await createTag(db, TEST_USER_ID, "cli-tools")
     expect(tag.name).toBe("cli-tools")
     expect(await listTags(db, TEST_USER_ID)).toEqual([
-      { id: tag.id, name: "cli-tools", repoCount: 0 },
+      { id: tag.id, name: "cli-tools", description: null, repoCount: 0 },
     ])
+  })
+
+  it("stores the description", async () => {
+    const db = await createTestDb()
+    await createTag(db, TEST_USER_ID, "cli-tools", "  命令行工具  ")
+    expect(await listTags(db, TEST_USER_ID)).toEqual([
+      {
+        id: expect.any(Number),
+        name: "cli-tools",
+        description: "命令行工具",
+        repoCount: 0,
+      },
+    ])
+  })
+
+  it("treats a blank description as null", async () => {
+    const db = await createTestDb()
+    await createTag(db, TEST_USER_ID, "cli-tools", "   ")
+    expect((await listTags(db, TEST_USER_ID))[0].description).toBeNull()
   })
 
   it("is idempotent for an existing name", async () => {
@@ -103,9 +130,9 @@ describe("listTags", () => {
     expect(countsStarred).toEqual({ cli: 1, docs: 0 })
 
     // sanity: ids map to expected entries
-    expect((await listTags(db, TEST_USER_ID, "owned")).map((t) => t.id)).toEqual(
-      [cli.id, docs.id].sort((a, b) => a - b),
-    )
+    expect(
+      (await listTags(db, TEST_USER_ID, "owned")).map((t) => t.id),
+    ).toEqual([cli.id, docs.id].sort((a, b) => a - b))
   })
 })
 
@@ -131,10 +158,7 @@ describe("setRepoTags / getRepoTags", () => {
       "cli",
       "favorite-tools",
     ])
-    expect(result.map((t) => t.name).sort()).toEqual([
-      "cli",
-      "favorite-tools",
-    ])
+    expect(result.map((t) => t.name).sort()).toEqual(["cli", "favorite-tools"])
     expect(
       (await getRepoTags(db, TEST_USER_ID, 1)).map((t) => t.name).sort(),
     ).toEqual(["cli", "favorite-tools"])
@@ -163,5 +187,81 @@ describe("setRepoTags / getRepoTags", () => {
       "  ",
     ])
     expect(result.map((t) => t.name)).toEqual(["cli"])
+  })
+})
+
+describe("findTagByName", () => {
+  it("finds a tag owned by the user only", async () => {
+    const db = await createTestDb()
+    const tag = await createTag(db, TEST_USER_ID, "cli-tools")
+    expect(await findTagByName(db, TEST_USER_ID, "cli-tools")).toEqual({
+      id: tag.id,
+      name: "cli-tools",
+    })
+    expect(await findTagByName(db, TEST_USER_ID, "missing")).toBeNull()
+    expect(await findTagByName(db, 2002, "cli-tools")).toBeNull()
+  })
+})
+
+describe("updateTag", () => {
+  it("renames a tag", async () => {
+    const db = await createTestDb()
+    const tag = await createTag(db, TEST_USER_ID, "cli-tools")
+    expect(
+      await updateTag(db, TEST_USER_ID, tag.id, { name: " cli " }),
+    ).toEqual({ id: tag.id, name: "cli" })
+    expect(await listTags(db, TEST_USER_ID)).toEqual([
+      { id: tag.id, name: "cli", description: null, repoCount: 0 },
+    ])
+  })
+
+  it("updates the description without touching the name", async () => {
+    const db = await createTestDb()
+    const tag = await createTag(db, TEST_USER_ID, "cli-tools")
+    await updateTag(db, TEST_USER_ID, tag.id, { description: "命令行工具" })
+    expect((await listTags(db, TEST_USER_ID))[0]).toEqual({
+      id: tag.id,
+      name: "cli-tools",
+      description: "命令行工具",
+      repoCount: 0,
+    })
+  })
+
+  it("clears the description when given a blank string", async () => {
+    const db = await createTestDb()
+    const tag = await createTag(db, TEST_USER_ID, "cli", "命令行工具")
+    await updateTag(db, TEST_USER_ID, tag.id, { description: "  " })
+    expect((await listTags(db, TEST_USER_ID))[0].description).toBeNull()
+  })
+
+  it("returns null for a tag that does not belong to the user", async () => {
+    const db = await createTestDb()
+    const tag = await createTag(db, TEST_USER_ID, "cli-tools")
+    expect(
+      await updateTag(db, TEST_USER_ID, tag.id + 999, { name: "x" }),
+    ).toBeNull()
+    expect(await updateTag(db, 2002, tag.id, { name: "x" })).toBeNull()
+    expect((await listTags(db, TEST_USER_ID))[0].name).toBe("cli-tools")
+  })
+})
+
+describe("deleteTag", () => {
+  it("deletes the tag and detaches it from repos", async () => {
+    const db = await createTestDb()
+    await insertRepoWithSource(db, 1, { isOwned: 1 })
+    const tag = await createTag(db, TEST_USER_ID, "cli")
+    await setRepoTags(db, TEST_USER_ID, 1, ["cli"])
+
+    expect(await deleteTag(db, TEST_USER_ID, tag.id)).toBe(true)
+    expect(await listTags(db, TEST_USER_ID)).toEqual([])
+    expect(await getRepoTags(db, TEST_USER_ID, 1)).toEqual([])
+  })
+
+  it("returns false when the tag does not exist", async () => {
+    const db = await createTestDb()
+    const tag = await createTag(db, TEST_USER_ID, "cli")
+    expect(await deleteTag(db, TEST_USER_ID, tag.id + 999)).toBe(false)
+    expect(await deleteTag(db, 2002, tag.id)).toBe(false)
+    expect(await listTags(db, TEST_USER_ID)).toHaveLength(1)
   })
 })

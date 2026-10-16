@@ -59,7 +59,9 @@ export const tags = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: integer("user_id").notNull(),
     name: text("name").notNull(),
+    description: text("description"),
     createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at"),
   },
   (table) => [unique().on(table.userId, table.name)],
 )

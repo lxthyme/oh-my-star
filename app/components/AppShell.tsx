@@ -97,6 +97,10 @@ function NavMenu() {
         </Link>
       ),
     },
+    {
+      key: "/tags",
+      label: <Link href="/tags">标签管理</Link>,
+    },
   ]
 
   return (

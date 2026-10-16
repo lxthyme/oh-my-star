@@ -264,6 +264,61 @@ describe("listRepos", () => {
     expect(untagged.items.map((r) => r.id)).toEqual([2])
   })
 
+  it("filters by a parent tag matching its whole subtree", async () => {
+    await insertRepo(db, { id: 1 })
+    await insertRepo(db, { id: 2 })
+    await insertRepo(db, { id: 3 })
+
+    const [parent] = await db
+      .insert(tags)
+      .values({
+        userId: TEST_USER_ID,
+        name: "语言",
+        createdAt: "2026-01-01T00:00:00Z",
+      })
+      .returning({ id: tags.id })
+    const [child] = await db
+      .insert(tags)
+      .values({
+        userId: TEST_USER_ID,
+        name: "Go",
+        parentId: parent.id,
+        createdAt: "2026-01-01T00:00:00Z",
+      })
+      .returning({ id: tags.id })
+    const [grandchild] = await db
+      .insert(tags)
+      .values({
+        userId: TEST_USER_ID,
+        name: "Gin",
+        parentId: child.id,
+        createdAt: "2026-01-01T00:00:00Z",
+      })
+      .returning({ id: tags.id })
+
+    // repo 1 打父标签，repo 2 打子标签，repo 3 打孙标签
+    await db
+      .insert(repoTags)
+      .values([
+        { userId: TEST_USER_ID, repoId: 1, tagId: parent.id },
+        { userId: TEST_USER_ID, repoId: 2, tagId: child.id },
+        { userId: TEST_USER_ID, repoId: 3, tagId: grandchild.id },
+      ])
+      .run()
+
+    const byParent = await listRepos(db, TEST_USER_ID, {
+      source: "owned",
+      tagId: parent.id,
+    })
+    expect(byParent.items.map((r) => r.id).sort()).toEqual([1, 2, 3])
+
+    const byChild = await listRepos(db, TEST_USER_ID, {
+      source: "owned",
+      tagId: child.id,
+    })
+    expect(byChild.items.map((r) => r.id).sort()).toEqual([2, 3])
+  })
+
   it("attaches resolved tags to each item", async () => {
     await insertRepo(db, { id: 1 })
     const [tag] = await db
@@ -422,7 +477,12 @@ describe("countReposBySource", () => {
 describe("setStarred", () => {
   it("updates is_starred and starred_at", async () => {
     const db = await createTestDb()
-    await insertRepo(db, { id: 1, fullName: "octocat/A", name: "A", isOwned: 1 })
+    await insertRepo(db, {
+      id: 1,
+      fullName: "octocat/A",
+      name: "A",
+      isOwned: 1,
+    })
 
     await setStarred(db, TEST_USER_ID, 1, true)
     let result = await listRepos(db, TEST_USER_ID, { source: "owned" })

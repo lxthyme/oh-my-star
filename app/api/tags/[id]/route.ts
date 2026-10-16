@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
 import {
+  TagHierarchyError,
   deleteTag,
   findTagByName,
   updateTag,
@@ -68,7 +69,23 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     input.description = description
   }
 
-  if (input.name === undefined && input.description === undefined) {
+  if (body.parentId !== undefined && body.parentId !== null) {
+    if (!Number.isInteger(body.parentId)) {
+      return NextResponse.json(
+        { error: "parentId 必须是数字" },
+        { status: 400 },
+      )
+    }
+    input.parentId = body.parentId
+  } else if (body.parentId === null) {
+    input.parentId = null
+  }
+
+  if (
+    input.name === undefined &&
+    input.description === undefined &&
+    input.parentId === undefined
+  ) {
     return NextResponse.json({ error: "没有需要更新的字段" }, { status: 400 })
   }
 
@@ -89,6 +106,9 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     }
     return NextResponse.json(updated)
   } catch (error) {
+    if (error instanceof TagHierarchyError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     return apiErrorResponse(error)
   }
 }
@@ -106,11 +126,14 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const deleted = await deleteTag(db, session.userId, tagId)
-    if (!deleted) {
+    const result = await deleteTag(db, session.userId, tagId)
+    if (!result.ok) {
       return NextResponse.json({ error: "标签不存在" }, { status: 404 })
     }
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({
+      ok: true,
+      movedChildren: result.movedChildren,
+    })
   } catch (error) {
     return apiErrorResponse(error)
   }

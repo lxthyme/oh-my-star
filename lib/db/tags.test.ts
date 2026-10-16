@@ -3,6 +3,8 @@ import { createTestDb } from "./test-helpers"
 import type { AppDatabase } from "./client"
 import { repos, userRepos } from "./schema"
 import {
+  TagHierarchyError,
+  listTagSubtreeIds,
   listTags,
   createTag,
   findTagByName,
@@ -11,8 +13,19 @@ import {
   getRepoTags,
   setRepoTags,
 } from "./tags"
+import { ORPHAN_TAG_NAME } from "../tag-limits"
 
 const TEST_USER_ID = 1001
+
+/** 只保留与层级无关的字段，避免每个断言都写一遍层级信息 */
+function brief(tags: Awaited<ReturnType<typeof listTags>>) {
+  return tags.map((tag) => ({
+    id: tag.id,
+    name: tag.name,
+    description: tag.description,
+    repoCount: tag.repoCount,
+  }))
+}
 
 async function insertRepoWithSource(
   db: AppDatabase,
@@ -45,7 +58,7 @@ describe("createTag", () => {
     const db = await createTestDb()
     const tag = await createTag(db, TEST_USER_ID, "cli-tools")
     expect(tag.name).toBe("cli-tools")
-    expect(await listTags(db, TEST_USER_ID)).toEqual([
+    expect(brief(await listTags(db, TEST_USER_ID))).toEqual([
       { id: tag.id, name: "cli-tools", description: null, repoCount: 0 },
     ])
   })
@@ -53,7 +66,7 @@ describe("createTag", () => {
   it("stores the description", async () => {
     const db = await createTestDb()
     await createTag(db, TEST_USER_ID, "cli-tools", "  命令行工具  ")
-    expect(await listTags(db, TEST_USER_ID)).toEqual([
+    expect(brief(await listTags(db, TEST_USER_ID))).toEqual([
       {
         id: expect.any(Number),
         name: "cli-tools",
@@ -210,7 +223,7 @@ describe("updateTag", () => {
     expect(
       await updateTag(db, TEST_USER_ID, tag.id, { name: " cli " }),
     ).toEqual({ id: tag.id, name: "cli" })
-    expect(await listTags(db, TEST_USER_ID)).toEqual([
+    expect(brief(await listTags(db, TEST_USER_ID))).toEqual([
       { id: tag.id, name: "cli", description: null, repoCount: 0 },
     ])
   })
@@ -219,7 +232,7 @@ describe("updateTag", () => {
     const db = await createTestDb()
     const tag = await createTag(db, TEST_USER_ID, "cli-tools")
     await updateTag(db, TEST_USER_ID, tag.id, { description: "命令行工具" })
-    expect((await listTags(db, TEST_USER_ID))[0]).toEqual({
+    expect(brief(await listTags(db, TEST_USER_ID))[0]).toEqual({
       id: tag.id,
       name: "cli-tools",
       description: "命令行工具",
@@ -252,16 +265,192 @@ describe("deleteTag", () => {
     const tag = await createTag(db, TEST_USER_ID, "cli")
     await setRepoTags(db, TEST_USER_ID, 1, ["cli"])
 
-    expect(await deleteTag(db, TEST_USER_ID, tag.id)).toBe(true)
+    expect(await deleteTag(db, TEST_USER_ID, tag.id)).toEqual({
+      ok: true,
+      movedChildren: 0,
+    })
     expect(await listTags(db, TEST_USER_ID)).toEqual([])
     expect(await getRepoTags(db, TEST_USER_ID, 1)).toEqual([])
   })
 
-  it("returns false when the tag does not exist", async () => {
+  it("returns ok: false when the tag does not exist", async () => {
     const db = await createTestDb()
     const tag = await createTag(db, TEST_USER_ID, "cli")
-    expect(await deleteTag(db, TEST_USER_ID, tag.id + 999)).toBe(false)
-    expect(await deleteTag(db, 2002, tag.id)).toBe(false)
+    expect(await deleteTag(db, TEST_USER_ID, tag.id + 999)).toEqual({
+      ok: false,
+      movedChildren: 0,
+    })
+    expect(await deleteTag(db, 2002, tag.id)).toEqual({
+      ok: false,
+      movedChildren: 0,
+    })
     expect(await listTags(db, TEST_USER_ID)).toHaveLength(1)
+  })
+
+  it("moves children to the orphan tag", async () => {
+    const db = await createTestDb()
+    const parent = await createTag(db, TEST_USER_ID, "语言")
+    const child = await createTag(db, TEST_USER_ID, "Go", null, parent.id)
+
+    const result = await deleteTag(db, TEST_USER_ID, parent.id)
+    expect(result).toEqual({ ok: true, movedChildren: 1 })
+
+    const orphan = await findTagByName(db, TEST_USER_ID, ORPHAN_TAG_NAME)
+    expect(orphan).not.toBeNull()
+    expect(
+      (await listTags(db, TEST_USER_ID)).map((t) => t.name).sort(),
+    ).toEqual(["Go", ORPHAN_TAG_NAME])
+    const moved = (await listTags(db, TEST_USER_ID)).find(
+      (t) => t.id === child.id,
+    )
+    expect(moved?.parentId).toBe(orphan!.id)
+    expect(moved?.path).toBe(`${ORPHAN_TAG_NAME} / Go`)
+  })
+
+  it("refuses to delete the orphan tag", async () => {
+    const db = await createTestDb()
+    const parent = await createTag(db, TEST_USER_ID, "语言")
+    const child = await createTag(db, TEST_USER_ID, "Go", null, parent.id)
+    await deleteTag(db, TEST_USER_ID, parent.id)
+
+    const orphan = (await findTagByName(db, TEST_USER_ID, ORPHAN_TAG_NAME))!
+    await expect(deleteTag(db, TEST_USER_ID, orphan.id)).rejects.toThrow(
+      TagHierarchyError,
+    )
+
+    // 数据完好：标签还在，子标签仍在它下面
+    expect(
+      await findTagByName(db, TEST_USER_ID, ORPHAN_TAG_NAME),
+    ).not.toBeNull()
+    const moved = (await listTags(db, TEST_USER_ID)).find(
+      (t) => t.id === child.id,
+    )
+    expect(moved?.parentId).toBe(orphan.id)
+  })
+
+  it("does not self-reference when the orphan tag is a child of the deleted tag", async () => {
+    const db = await createTestDb()
+    const parent = await createTag(db, TEST_USER_ID, "语言")
+    const orphan = await createTag(db, TEST_USER_ID, ORPHAN_TAG_NAME)
+    await updateTag(db, TEST_USER_ID, orphan.id, { parentId: parent.id })
+
+    const result = await deleteTag(db, TEST_USER_ID, parent.id)
+    expect(result).toEqual({ ok: true, movedChildren: 1 })
+
+    const row = (await listTags(db, TEST_USER_ID)).find(
+      (t) => t.id === orphan.id,
+    )!
+    expect(row.parentId).toBeNull()
+    expect(row.depth).toBe(1)
+  })
+})
+
+describe("tag hierarchy", () => {
+  it("creates top-level tags by default", async () => {
+    const db = await createTestDb()
+    const tag = await createTag(db, TEST_USER_ID, "cli")
+    const [row] = await listTags(db, TEST_USER_ID)
+    expect(row.id).toBe(tag.id)
+    expect(row.parentId).toBeNull()
+    expect(row.depth).toBe(1)
+    expect(row.path).toBe("cli")
+    expect(row.childrenCount).toBe(0)
+  })
+
+  it("computes depth, path and childrenCount", async () => {
+    const db = await createTestDb()
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    const go = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+    const web = await createTag(db, TEST_USER_ID, "Web", null, lang.id)
+    await createTag(db, TEST_USER_ID, "Gin", null, go.id)
+
+    const byId = new Map(
+      (await listTags(db, TEST_USER_ID)).map((t) => [t.id, t]),
+    )
+    expect(byId.get(go.id)!.depth).toBe(2)
+    expect(byId.get(go.id)!.path).toBe("语言 / Go")
+    expect(byId.get(go.id)!.childrenCount).toBe(1)
+    expect(byId.get(lang.id)!.childrenCount).toBe(2)
+    expect(byId.get(web.id)!.childrenCount).toBe(0)
+  })
+
+  it("counts repos including descendants without double counting", async () => {
+    const db = await createTestDb()
+    await insertRepoWithSource(db, 1, { isOwned: 1 })
+    await insertRepoWithSource(db, 2, { isOwned: 1 })
+
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+    // repo 1 同时打了父与子，只能算一次
+    await setRepoTags(db, TEST_USER_ID, 1, ["语言", "Go"])
+    await setRepoTags(db, TEST_USER_ID, 2, ["Go"])
+
+    const byName = new Map(
+      (await listTags(db, TEST_USER_ID)).map((t) => [t.name, t]),
+    )
+    expect(byName.get("Go")!.repoCount).toBe(2)
+    expect(byName.get("Go")!.totalRepoCount).toBe(2)
+    expect(byName.get("语言")!.repoCount).toBe(1)
+    expect(byName.get("语言")!.totalRepoCount).toBe(2)
+  })
+
+  it("returns the subtree ids", async () => {
+    const db = await createTestDb()
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    const go = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+    const gin = await createTag(db, TEST_USER_ID, "Gin", null, go.id)
+    const other = await createTag(db, TEST_USER_ID, "其他")
+
+    const subtree = await listTagSubtreeIds(db, TEST_USER_ID, lang.id)
+    expect(subtree.sort()).toEqual([lang.id, go.id, gin.id].sort())
+    expect(await listTagSubtreeIds(db, TEST_USER_ID, other.id)).toEqual([
+      other.id,
+    ])
+    expect(await listTagSubtreeIds(db, TEST_USER_ID, 999999)).toEqual([])
+  })
+
+  it("rejects self reference, cycles and over-deep moves", async () => {
+    const db = await createTestDb()
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    const go = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+
+    await expect(
+      updateTag(db, TEST_USER_ID, go.id, { parentId: go.id }),
+    ).rejects.toThrow(TagHierarchyError)
+    // 把「语言」挂到它自己的子标签「Go」下 = 成环
+    await expect(
+      updateTag(db, TEST_USER_ID, lang.id, { parentId: go.id }),
+    ).rejects.toThrow(TagHierarchyError)
+    await expect(
+      updateTag(db, TEST_USER_ID, go.id, { parentId: 999999 }),
+    ).rejects.toThrow(TagHierarchyError)
+  })
+
+  it("moves a tag to top level and to another parent", async () => {
+    const db = await createTestDb()
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    const go = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+    const tool = await createTag(db, TEST_USER_ID, "工具")
+
+    await updateTag(db, TEST_USER_ID, go.id, { parentId: tool.id })
+    let row = (await listTags(db, TEST_USER_ID)).find((t) => t.id === go.id)!
+    expect(row.parentId).toBe(tool.id)
+    expect(row.path).toBe("工具 / Go")
+
+    await updateTag(db, TEST_USER_ID, go.id, { parentId: null })
+    row = (await listTags(db, TEST_USER_ID)).find((t) => t.id === go.id)!
+    expect(row.parentId).toBeNull()
+    expect(row.depth).toBe(1)
+  })
+
+  it("keeps the parent untouched when parentId is omitted", async () => {
+    const db = await createTestDb()
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    const go = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+
+    await updateTag(db, TEST_USER_ID, go.id, { name: "Golang" })
+    const row = (await listTags(db, TEST_USER_ID)).find((t) => t.id === go.id)!
+    expect(row.name).toBe("Golang")
+    expect(row.parentId).toBe(lang.id)
   })
 })

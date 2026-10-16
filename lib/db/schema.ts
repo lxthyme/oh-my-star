@@ -4,6 +4,7 @@ import {
   text,
   primaryKey,
   unique,
+  type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core"
 
 export const repos = sqliteTable("repos", {
@@ -60,6 +61,8 @@ export const tags = sqliteTable(
     userId: integer("user_id").notNull(),
     name: text("name").notNull(),
     description: text("description"),
+    /** 父标签 id；NULL 表示顶级标签（1 级） */
+    parentId: integer("parent_id").references((): AnySQLiteColumn => tags.id),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at"),
   },

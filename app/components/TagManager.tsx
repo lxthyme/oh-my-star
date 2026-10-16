@@ -8,23 +8,28 @@ import {
   Input,
   Modal,
   Popconfirm,
+  Select,
   Space,
   Spin,
   Table,
   Tag as AntTag,
+  Tooltip,
   Typography,
   message,
   theme,
 } from "antd"
 import {
+  ApartmentOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons"
+import Link from "next/link"
 import type { ColumnsType } from "antd/es/table"
 import { fetchJson, parseJsonResponse } from "../lib/api-client"
 import {
+  ORPHAN_TAG_NAME,
   TAG_DESCRIPTION_MAX_LENGTH,
   TAG_NAME_MAX_LENGTH,
 } from "@/lib/tag-limits"
@@ -36,11 +41,40 @@ interface TagRow {
   name: string
   description: string | null
   repoCount: number
+  parentId: number | null
+  depth: number
+  path: string
+  childrenCount: number
+  totalRepoCount: number
 }
 
 interface TagFormValues {
   name: string
   description: string
+  parentId?: number | null
+}
+
+/** 收集某标签的全部子孙 id（含间接），带自环保护 */
+function collectDescendantIds(tags: TagRow[], rootId: number): Set<number> {
+  const childrenOf = new Map<number, number[]>()
+  for (const tag of tags) {
+    if (tag.parentId === null) continue
+    const list = childrenOf.get(tag.parentId) ?? []
+    list.push(tag.id)
+    childrenOf.set(tag.parentId, list)
+  }
+
+  const result = new Set<number>()
+  const stack = [rootId]
+  while (stack.length > 0) {
+    const current = stack.pop()!
+    for (const child of childrenOf.get(current) ?? []) {
+      if (result.has(child)) continue
+      result.add(child)
+      stack.push(child)
+    }
+  }
+  return result
 }
 
 export default function TagManager() {
@@ -82,6 +116,7 @@ export default function TagManager() {
     form.setFieldsValue({
       name: editing?.name ?? "",
       description: editing?.description ?? "",
+      parentId: editing?.parentId ?? null,
     })
   }, [modalOpen, editing, form])
 
@@ -94,6 +129,16 @@ export default function TagManager() {
       ),
     )
   }, [tags, keyword])
+
+  // 父级候选：不能是自己，也不能是自己的子孙
+  const parentOptions = useMemo(() => {
+    const excluded = editing ? collectDescendantIds(tags, editing.id) : null
+    return tags
+      .filter(
+        (tag) => !editing || (tag.id !== editing.id && !excluded!.has(tag.id)),
+      )
+      .map((tag) => ({ label: tag.path, value: tag.id }))
+  }, [tags, editing])
 
   const openCreate = () => {
     setEditing(null)
@@ -142,6 +187,7 @@ export default function TagManager() {
     const payload = {
       name: values.name.trim(),
       description: values.description?.trim() ?? "",
+      parentId: values.parentId ?? null,
     }
     setSubmitting(true)
     const ok = editing
@@ -160,7 +206,11 @@ export default function TagManager() {
     const ok = await callAndRefresh(`/api/tags/${tag.id}`, "DELETE")
     setDeletingId(null)
     if (!ok) return
-    message.success(`已删除标签「${tag.name}」`)
+    message.success(
+      tag.childrenCount > 0
+        ? `已删除标签「${tag.name}」，${tag.childrenCount} 个子标签已移到「${ORPHAN_TAG_NAME}」`
+        : `已删除标签「${tag.name}」`,
+    )
     await fetchTags()
   }
 
@@ -168,8 +218,26 @@ export default function TagManager() {
     {
       title: "标签",
       dataIndex: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
-      render: (name: string) => <AntTag color="blue">{name}</AntTag>,
+      sorter: (a, b) => a.path.localeCompare(b.path),
+      render: (_name: string, row) => {
+        const segments = row.path.split(" / ")
+        const prefix = segments.slice(0, -1)
+        return (
+          <Space size={4} wrap={false}>
+            {prefix.length > 0 && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {prefix.join(" / ")} /
+              </Text>
+            )}
+            <AntTag
+              color={row.depth > 1 ? "geekblue" : "blue"}
+              style={{ margin: 0 }}
+            >
+              {row.name}
+            </AntTag>
+          </Space>
+        )
+      },
     },
     {
       title: "描述",
@@ -187,11 +255,36 @@ export default function TagManager() {
         ),
     },
     {
-      title: "仓库数",
-      dataIndex: "repoCount",
-      width: 100,
+      title: "子标签",
+      dataIndex: "childrenCount",
+      width: 90,
       align: "right",
-      sorter: (a, b) => a.repoCount - b.repoCount,
+      sorter: (a, b) => a.childrenCount - b.childrenCount,
+      render: (count: number) =>
+        count > 0 ? count : <Text type="secondary">—</Text>,
+    },
+    {
+      title: "仓库数",
+      dataIndex: "totalRepoCount",
+      width: 130,
+      align: "right",
+      sorter: (a, b) => a.totalRepoCount - b.totalRepoCount,
+      render: (total: number, row) =>
+        row.childrenCount > 0 ? (
+          <Tooltip
+            title={`自身 ${row.repoCount} / 含子级 ${row.totalRepoCount}`}
+          >
+            <span>
+              {total}
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {" "}
+                (自身 {row.repoCount})
+              </Text>
+            </span>
+          </Tooltip>
+        ) : (
+          total
+        ),
     },
     {
       title: "操作",
@@ -207,28 +300,48 @@ export default function TagManager() {
           >
             编辑
           </Button>
-          <Popconfirm
-            title={`删除标签「${tag.name}」？`}
-            description={
-              tag.repoCount > 0
-                ? `该标签已用于 ${tag.repoCount} 个仓库，删除后这些仓库会移除此标签，且无法恢复。`
-                : "删除后无法恢复。"
-            }
-            okText="确认删除"
-            cancelText="取消"
-            okButtonProps={{ danger: true, loading: deletingId === tag.id }}
-            onConfirm={() => handleDelete(tag)}
-          >
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              loading={deletingId === tag.id}
+          {tag.name === ORPHAN_TAG_NAME ? (
+            <Tooltip
+              title={`「${ORPHAN_TAG_NAME}」是专用标签，不支持删除；请先把它的子标签移到其他标签下。`}
             >
-              删除
-            </Button>
-          </Popconfirm>
+              <Button
+                type="link"
+                size="small"
+                icon={<DeleteOutlined />}
+                disabled
+              >
+                删除
+              </Button>
+            </Tooltip>
+          ) : (
+            <Popconfirm
+              title={`删除标签「${tag.name}」？`}
+              description={[
+                tag.totalRepoCount > 0
+                  ? `该标签已用于 ${tag.totalRepoCount} 个仓库，删除后这些仓库会移除此标签，且无法恢复。`
+                  : "删除后无法恢复。",
+                tag.childrenCount > 0
+                  ? `${tag.childrenCount} 个子标签将移动到「${ORPHAN_TAG_NAME}」下，之后可手动调整。`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              okText="确认删除"
+              cancelText="取消"
+              okButtonProps={{ danger: true, loading: deletingId === tag.id }}
+              onConfirm={() => handleDelete(tag)}
+            >
+              <Button
+                type="link"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deletingId === tag.id}
+              >
+                删除
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -257,6 +370,9 @@ export default function TagManager() {
           placeholder="搜索标签名称或描述"
           style={{ width: 240 }}
         />
+        <Link href="/tags/tree">
+          <Button icon={<ApartmentOutlined />}>层级图</Button>
+        </Link>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -324,6 +440,20 @@ export default function TagManager() {
               maxLength={TAG_DESCRIPTION_MAX_LENGTH}
               showCount
               placeholder="这个标签用来归类哪些仓库？"
+            />
+          </Form.Item>
+          <Form.Item
+            name="parentId"
+            label="父标签"
+            extra="不选择则为顶级标签；选中父标签后，筛选该父标签会一并匹配它的子标签。"
+          >
+            <Select
+              allowClear
+              placeholder="顶级标签"
+              options={parentOptions}
+              optionFilterProp="label"
+              showSearch
+              disabled={tags.length === 0}
             />
           </Form.Item>
         </Form>

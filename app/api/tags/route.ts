@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { db } from "@/lib/db/client"
-import { createTag, findTagByName, listTags } from "@/lib/db/tags"
+import {
+  TagHierarchyError,
+  createTag,
+  findTagByName,
+  listTags,
+} from "@/lib/db/tags"
 import { apiErrorResponse } from "@/lib/api-error"
 import {
   TAG_DESCRIPTION_MAX_LENGTH,
@@ -54,6 +59,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  let parentId: number | null = null
+  if (body.parentId !== undefined && body.parentId !== null) {
+    if (!Number.isInteger(body.parentId)) {
+      return NextResponse.json(
+        { error: "parentId 必须是数字" },
+        { status: 400 },
+      )
+    }
+    parentId = body.parentId
+  }
+
   try {
     if (await findTagByName(db, session.userId, name)) {
       return NextResponse.json(
@@ -61,9 +77,18 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       )
     }
-    const tag = await createTag(db, session.userId, name, rawDescription)
+    const tag = await createTag(
+      db,
+      session.userId,
+      name,
+      rawDescription,
+      parentId,
+    )
     return NextResponse.json(tag, { status: 201 })
   } catch (error) {
+    if (error instanceof TagHierarchyError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
     return apiErrorResponse(error)
   }
 }

@@ -92,14 +92,23 @@ export default function FilterBar({
         { label: "Stars", value: "stars" },
       ]
 
-  const tagOptions: { label: string; value: string; repoCount?: number }[] = [
+  // 按层级路径排序，同一父标签下的子标签会挨在一起
+  const tagOptions: {
+    label: string
+    value: string
+    repoCount?: number
+    depth?: number
+  }[] = [
     { label: "标签：全部", value: "all" },
     { label: "未打标", value: "untagged" },
-    ...tags.map((tag) => ({
-      label: tag.name,
-      value: String(tag.id),
-      repoCount: tag.repoCount ?? 0,
-    })),
+    ...[...tags]
+      .sort((a, b) => (a.path ?? a.name).localeCompare(b.path ?? b.name))
+      .map((tag) => ({
+        label: tag.path ?? tag.name,
+        value: String(tag.id),
+        repoCount: tag.totalRepoCount ?? tag.repoCount ?? 0,
+        depth: tag.depth ?? 1,
+      })),
   ]
 
   return (
@@ -142,14 +151,18 @@ export default function FilterBar({
             ...languages.map((lang) => ({ label: lang, value: lang })),
           ]}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"
-          onChange={(language) => onChange({ ...value, language: language ?? "all" })}
+          onChange={(language) =>
+            onChange({ ...value, language: language ?? "all" })
+          }
         />
         <Select
           {...SHARED_SELECT}
           value={value.favorite}
           options={FAVORITE_OPTIONS}
           className="min-w-[120px] flex-1 sm:max-w-[140px]"
-          onChange={(favorite) => onChange({ ...value, favorite: favorite ?? "all" })}
+          onChange={(favorite) =>
+            onChange({ ...value, favorite: favorite ?? "all" })
+          }
         />
         <Select
           {...SHARED_SELECT}
@@ -167,15 +180,21 @@ export default function FilterBar({
           optionRender={(option) => {
             const { label, data } = option as {
               label: ReactNode
-              data: { value?: string | number; repoCount?: number }
+              data: {
+                value?: string | number
+                repoCount?: number
+                depth?: number
+              }
             }
             const optionValue = data?.value ?? option.value
             if (optionValue === "all" || optionValue === "untagged") {
               return <span>{label}</span>
             }
+            // 子标签按层级缩进，一眼看出归属
+            const indent = Math.max((data?.depth ?? 1) - 1, 0) * 12
             return (
               <span className="flex items-center justify-between gap-3">
-                <span>{label}</span>
+                <span style={{ paddingLeft: indent }}>{label}</span>
                 <span className="text-xs opacity-60">
                   {data?.repoCount ?? 0}
                 </span>

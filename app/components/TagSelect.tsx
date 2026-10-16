@@ -8,6 +8,12 @@ export interface TagOption {
   name: string
   /** 该标签下的 repo 数量，由 /api/tags 按当前列表来源统计 */
   repoCount?: number
+  /** 含子孙标签的 repo 数量（同一 repo 只计一次） */
+  totalRepoCount?: number
+  /** 层级路径，如「工具 / CLI」 */
+  path?: string
+  /** 层级深度，顶级标签为 1 */
+  depth?: number
 }
 
 interface TagSelectProps {

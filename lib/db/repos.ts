@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm"
 import type { AppDatabase } from "./client"
 import { repos, userRepos, repoUserData, repoTags, tags } from "./schema"
+import { listTagSubtreeIds } from "./tags"
 
 export type RepoSource = "owned" | "starred"
 export type RepoTypeFilter =
@@ -65,7 +66,12 @@ export interface ListReposResult {
 
 const DEFAULT_PER_PAGE = 30
 
-function buildWhere(userId: number, params: ListReposParams): SQL | undefined {
+function buildWhere(
+  userId: number,
+  params: ListReposParams,
+  /** 选中标签的子树 id 集合（含自身），命中父标签时匹配整棵子树 */
+  tagIds?: number[],
+): SQL | undefined {
   const conditions: SQL[] = [eq(userRepos.userId, userId)]
 
   conditions.push(
@@ -126,8 +132,9 @@ function buildWhere(userId: number, params: ListReposParams): SQL | undefined {
       sql`NOT EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.userId} = ${userId})`,
     )
   } else if (typeof params.tagId === "number") {
+    const ids = tagIds?.length ? tagIds : [params.tagId]
     conditions.push(
-      sql`EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.tagId} = ${params.tagId} AND ${repoTags.userId} = ${userId})`,
+      sql`EXISTS (SELECT 1 FROM ${repoTags} WHERE ${repoTags.repoId} = ${repos.id} AND ${repoTags.userId} = ${userId} AND ${inArray(repoTags.tagId, ids)})`,
     )
   }
 
@@ -142,7 +149,12 @@ export async function listRepos(
   const page = params.page && params.page > 0 ? params.page : 1
   const perPage =
     params.perPage && params.perPage > 0 ? params.perPage : DEFAULT_PER_PAGE
-  const where = buildWhere(userId, params)
+  // 选中父标签时按整棵子树匹配
+  const tagIds =
+    typeof params.tagId === "number"
+      ? await listTagSubtreeIds(db, userId, params.tagId)
+      : undefined
+  const where = buildWhere(userId, params, tagIds)
 
   const sortColumnMap = {
     updated: repos.pushedAt,
@@ -159,10 +171,7 @@ export async function listRepos(
     .innerJoin(userRepos, eq(userRepos.repoId, repos.id))
     .leftJoin(
       repoUserData,
-      and(
-        eq(repoUserData.repoId, repos.id),
-        eq(repoUserData.userId, userId),
-      ),
+      and(eq(repoUserData.repoId, repos.id), eq(repoUserData.userId, userId)),
     )
     .where(where)
     .get()
@@ -179,10 +188,7 @@ export async function listRepos(
     .innerJoin(userRepos, eq(userRepos.repoId, repos.id))
     .leftJoin(
       repoUserData,
-      and(
-        eq(repoUserData.repoId, repos.id),
-        eq(repoUserData.userId, userId),
-      ),
+      and(eq(repoUserData.repoId, repos.id), eq(repoUserData.userId, userId)),
     )
     .where(where)
     .orderBy(orderFn(sortColumn))

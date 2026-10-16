@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
+  App,
   ConfigProvider,
   Dropdown,
   Layout,
@@ -182,88 +183,90 @@ export default function AppShell({ children }: React.PropsWithChildren) {
         },
       }}
     >
-      <SyncProvider>
-        <Layout style={{ minHeight: "100vh" }}>
-          <Layout.Header
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              paddingInline: 16,
-            }}
-          >
-            <div
+      <App>
+        <SyncProvider>
+          <Layout style={{ minHeight: "100vh" }}>
+            <Layout.Header
               style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                flexShrink: 0,
+                gap: 16,
+                paddingInline: 16,
               }}
             >
-              <Link
-                href="/repos"
+              <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  color: "#fff",
-                  fontWeight: 600,
+                  flexShrink: 0,
                 }}
               >
-                <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
-                <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
-              </Link>
-              <Tooltip
-                title={`v${process.env.APP_VERSION} · ${process.env.APP_GIT_SHA} · ${process.env.APP_GIT_MESSAGE}`}
+                <Link
+                  href="/repos"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    color: "#fff",
+                    fontWeight: 600,
+                  }}
+                >
+                  <StarFilled style={{ fontSize: 18, color: "#fadb14" }} />
+                  <span style={{ whiteSpace: "nowrap" }}>GitHub Star 管理</span>
+                </Link>
+                <Tooltip
+                  title={`v${process.env.APP_VERSION} · ${process.env.APP_GIT_SHA} · ${process.env.APP_GIT_MESSAGE}`}
+                >
+                  <a
+                    href={`https://github.com/lxthyme/oh-my-star/commit/${process.env.APP_GIT_SHA}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      whiteSpace: "nowrap",
+                      fontSize: 12,
+                      opacity: 0.6,
+                      color: "#fff",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    v{process.env.APP_VERSION}
+                  </a>
+                </Tooltip>
+              </div>
+              <NavMenu />
+              <SyncButton />
+              <Dropdown
+                menu={{
+                  items: themeMenuItems,
+                  selectedKeys: [mode],
+                  onClick: ({ key }) => setMode(key as ThemeMode),
+                }}
+                trigger={["click"]}
               >
                 <a
-                  href={`https://github.com/lxthyme/oh-my-star/commit/${process.env.APP_GIT_SHA}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={(e) => e.preventDefault()}
                   style={{
-                    whiteSpace: "nowrap",
-                    fontSize: 12,
-                    opacity: 0.6,
                     color: "#fff",
-                    textDecoration: "none",
+                    fontSize: 18,
+                    flexShrink: 0,
                     cursor: "pointer",
                   }}
                 >
-                  v{process.env.APP_VERSION}
+                  {THEME_MODE_ICONS[mode]}
                 </a>
-              </Tooltip>
-            </div>
-            <NavMenu />
-            <SyncButton />
-            <Dropdown
-              menu={{
-                items: themeMenuItems,
-                selectedKeys: [mode],
-                onClick: ({ key }) => setMode(key as ThemeMode),
-              }}
-              trigger={["click"]}
-            >
-              <a
-                onClick={(e) => e.preventDefault()}
-                style={{
-                  color: "#fff",
-                  fontSize: 18,
-                  flexShrink: 0,
-                  cursor: "pointer",
-                }}
-              >
-                {THEME_MODE_ICONS[mode]}
-              </a>
-            </Dropdown>
-          </Layout.Header>
-          <Layout.Content style={{ padding: "16px 16px 32px" }}>
-            <div className="page-container">{children}</div>
-          </Layout.Content>
-        </Layout>
-      </SyncProvider>
+              </Dropdown>
+            </Layout.Header>
+            <Layout.Content style={{ padding: "16px 16px 32px" }}>
+              <div className="page-container">{children}</div>
+            </Layout.Content>
+          </Layout>
+        </SyncProvider>
+      </App>
     </ConfigProvider>
   )
 }

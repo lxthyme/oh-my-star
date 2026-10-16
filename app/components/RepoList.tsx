@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Col, Empty, Pagination, Row, Spin, message, theme } from "antd"
+import { Col, App, Empty, Pagination, Row, Spin, theme } from "antd"
 import FilterBar, { type FilterValues } from "./FilterBar"
 import RepoCard, { type RepoCardData } from "./RepoCard"
 import type { TagOption } from "./TagSelect"
@@ -66,6 +66,7 @@ export default function RepoList({ source }: RepoListProps) {
   const perPage = Number(searchParams.get("perPage") ?? "30")
 
   const { syncVersion, refreshCounts } = useSync()
+  const { message } = App.useApp()
   const [data, setData] = useState<ReposResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [allTags, setAllTags] = useState<TagOption[]>([])
@@ -83,7 +84,7 @@ export default function RepoList({ source }: RepoListProps) {
           : "获取标签失败",
       )
     }
-  }, [source])
+  }, [source, message])
 
   const fetchRepos = useCallback(async () => {
     setLoading(true)

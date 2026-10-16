@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
+  App,
   Button,
   Empty,
   Form,
@@ -15,7 +16,6 @@ import {
   Tag as AntTag,
   Tooltip,
   Typography,
-  message,
   theme,
 } from "antd"
 import {
@@ -118,6 +118,7 @@ function collectDescendantIds(tags: TagRow[], rootId: number): Set<number> {
 
 export default function TagManager() {
   const { token } = theme.useToken()
+  const { message } = App.useApp()
   const [form] = Form.useForm<TagFormValues>()
 
   const [tags, setTags] = useState<TagRow[]>([])
@@ -142,7 +143,7 @@ export default function TagManager() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [message])
 
   useEffect(() => {
     // 取数后必然 setState，react-hooks/set-state-in-effect 对所有 fetch-on-mount 都会报错

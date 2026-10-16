@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Alert,
+  App,
   Button,
   Descriptions,
   Empty,
@@ -12,7 +13,6 @@ import {
   Space,
   Spin,
   Typography,
-  message,
   theme,
 } from "antd"
 import { ArrowLeftOutlined, SearchOutlined } from "@ant-design/icons"
@@ -42,6 +42,7 @@ type DepthMode = "-1" | "1" | "2"
 
 export default function TagTreePage() {
   const { token } = theme.useToken()
+  const { message } = App.useApp()
   const [tags, setTags] = useState<TagTreeNode[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -63,7 +64,7 @@ export default function TagTreePage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [message])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

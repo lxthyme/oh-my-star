@@ -328,6 +328,57 @@ describe("deleteTag", () => {
     expect(moved?.parentId).toBe(orphan.id)
   })
 
+  it("exposes role for every tag", async () => {
+    const db = await createTestDb()
+    const parent = await createTag(db, TEST_USER_ID, "语言")
+    const child = await createTag(db, TEST_USER_ID, "Go", null, parent.id)
+
+    const byId = new Map((await listTags(db, TEST_USER_ID)).map((t) => [t.id, t]))
+    expect(byId.get(parent.id)!.role).toBeNull()
+    expect(byId.get(child.id)!.role).toBeNull()
+
+    await deleteTag(db, TEST_USER_ID, parent.id)
+    const orphan = (await findTagByName(db, TEST_USER_ID, ORPHAN_TAG_NAME))!
+    const after = new Map(
+      (await listTags(db, TEST_USER_ID)).map((t) => [t.id, t]),
+    )
+    expect(after.get(orphan.id)!.role).toBe("orphan")
+  })
+
+  it("keeps the orphan identity after it is renamed", async () => {
+    const db = await createTestDb()
+    const parent = await createTag(db, TEST_USER_ID, "语言")
+    await createTag(db, TEST_USER_ID, "Go", null, parent.id)
+    await deleteTag(db, TEST_USER_ID, parent.id)
+
+    const orphan = (await findTagByName(db, TEST_USER_ID, ORPHAN_TAG_NAME))!
+    await updateTag(db, TEST_USER_ID, orphan.id, { name: "待整理" })
+
+    // 改名后仍然是同一枚专用标签：不能删、原来的 id 不变
+    expect(
+      (await listTags(db, TEST_USER_ID)).find((t) => t.id === orphan.id)?.name,
+    ).toBe("待整理")
+    await expect(deleteTag(db, TEST_USER_ID, orphan.id)).rejects.toThrow(
+      TagHierarchyError,
+    )
+  })
+
+  it("rejects changing the parent of the orphan tag", async () => {
+    const db = await createTestDb()
+    const parent = await createTag(db, TEST_USER_ID, "语言")
+    await createTag(db, TEST_USER_ID, "Go", null, parent.id)
+    await deleteTag(db, TEST_USER_ID, parent.id)
+
+    const orphan = (await findTagByName(db, TEST_USER_ID, ORPHAN_TAG_NAME))!
+    const tool = await createTag(db, TEST_USER_ID, "工具")
+    await expect(
+      updateTag(db, TEST_USER_ID, orphan.id, { parentId: tool.id }),
+    ).rejects.toThrow(TagHierarchyError)
+    await expect(
+      updateTag(db, TEST_USER_ID, orphan.id, { parentId: null }),
+    ).rejects.toThrow(TagHierarchyError)
+  })
+
   it("does not self-reference when the orphan tag is a child of the deleted tag", async () => {
     const db = await createTestDb()
     const parent = await createTag(db, TEST_USER_ID, "语言")

@@ -9,11 +9,18 @@ export interface TagOption {
   name: string
 }
 
+/** 标签用途标记：NULL 为普通标签；orphan = 承接被删父标签遗留子标签的专用标签 */
+export type TagRole = "orphan" | null
+
 export interface TagWithCount extends TagOption {
   /** 标签描述，未填写时为 null */
   description: string | null
   /** 直接打上该标签的仓库数 */
   repoCount: number
+  /**
+   * 用途标记。按 role 而不是名称识别专用标签，改名后身份不会丢。
+   */
+  role: TagRole
   /** 父标签 id，顶级标签为 null */
   parentId: number | null
   /** 层级深度，顶级标签为 1 */
@@ -37,6 +44,12 @@ export interface TagUpdateInput {
    */
   parentId?: number | null
 }
+
+/**
+ * 既能接 `AppDatabase` 也能接事务对象，这样校验可以放进事务里执行，
+ * 避免"先校验后写入"被并发打断。
+ */
+type TagQueryDb = Pick<AppDatabase, "all" | "select">
 
 /** 层级校验失败（自引用、成环、超深、父级不存在等），由接口层转成 400 */
 export class TagHierarchyError extends Error {
@@ -71,7 +84,7 @@ export async function findTagByName(
  * 必须带 depth 上限——数据一旦成环，无上限的 CTE 会无限递归。
  */
 export async function listTagSubtreeIds(
-  db: AppDatabase,
+  db: TagQueryDb,
   userId: number,
   tagId: number,
 ): Promise<number[]> {
@@ -90,7 +103,7 @@ export async function listTagSubtreeIds(
 
 /** 递归 CTE：取某标签的祖先链（含自身，顺序为「自身 → 父 → ... → 顶级」） */
 export async function listTagAncestorIds(
-  db: AppDatabase,
+  db: TagQueryDb,
   userId: number,
   tagId: number,
 ): Promise<number[]> {
@@ -109,7 +122,7 @@ export async function listTagAncestorIds(
 
 /** 子树高度：叶子为 1 */
 async function getSubtreeHeight(
-  db: AppDatabase,
+  db: TagQueryDb,
   userId: number,
   tagId: number,
 ): Promise<number> {
@@ -128,7 +141,7 @@ async function getSubtreeHeight(
 
 /** 校验把 tagId 放到 parentId 下是否合法，不合法时抛 TagHierarchyError */
 async function assertValidParent(
-  db: AppDatabase,
+  db: TagQueryDb,
   userId: number,
   tagId: number,
   parentId: number | null,
@@ -168,6 +181,7 @@ export async function listTags(
       name: tags.name,
       description: tags.description,
       parentId: tags.parentId,
+      role: tags.role,
     })
     .from(tags)
     .where(eq(tags.userId, userId))
@@ -205,11 +219,11 @@ export async function listTags(
     (row) => row.parentId !== null && rowById.has(row.parentId),
   )
 
-  // 计算含子级的仓库数需要先知道每个标签下有哪些仓库；
-  // 没有任何层级时直接等于自身数量，省掉这次查询。
-  const reposByTagId = hasHierarchy
-    ? await listReposByTagId(db, userId, source)
-    : null
+  // 含子级的仓库数由 SQL 递归聚合，避免把成千上万行 repo_tags 拉进 JS。
+  // 没有任何层级时含子级就等于自身数量，省掉这次查询。
+  const totalRepoCountById = hasHierarchy
+    ? await countTotalReposByTagId(db, userId, source)
+    : new Map<number, number>()
 
   const depthById = new Map<number, number>()
   const pathById = new Map<number, string>()
@@ -259,23 +273,6 @@ export async function listTags(
     pathById.set(row.id, chain.join(" / "))
   }
 
-  // 由深到浅合并子孙的仓库集合，同一仓库只计一次
-  const totalRepoCountById = new Map<number, number>()
-  if (reposByTagId) {
-    const ordered = [...tagRows].sort(
-      (a, b) => (depthById.get(b.id) ?? 1) - (depthById.get(a.id) ?? 1),
-    )
-    for (const row of ordered) {
-      const merged = new Set(reposByTagId.get(row.id) ?? [])
-      for (const childId of childrenById.get(row.id) ?? []) {
-        const childTotal = reposByTagId.get(childId)
-        if (childTotal) for (const id of childTotal) merged.add(id)
-      }
-      reposByTagId.set(row.id, merged)
-      totalRepoCountById.set(row.id, merged.size)
-    }
-  }
-
   return tagRows.map((tag) => {
     const repoCount = repoCountByTagId.get(tag.id) ?? 0
     return {
@@ -283,6 +280,7 @@ export async function listTags(
       name: tag.name,
       description: tag.description,
       repoCount,
+      role: tag.role ?? null,
       parentId: tag.parentId,
       depth: depthById.get(tag.id) ?? 1,
       path: pathById.get(tag.id) ?? tag.name,
@@ -292,40 +290,37 @@ export async function listTags(
   })
 }
 
-async function listReposByTagId(
+/**
+ * 每个标签含子孙的仓库数（同一仓库经多条命中路径只算一次）。
+ * 递归 CTE 展开子树后再 COUNT(DISTINCT repo_id)，带 depth 上限防成环。
+ */
+async function countTotalReposByTagId(
   db: AppDatabase,
   userId: number,
   source?: RepoSource,
-): Promise<Map<number, Set<number>>> {
-  const rows = await db
-    .select({ tagId: repoTags.tagId, repoId: repoTags.repoId })
-    .from(repoTags)
-    .innerJoin(
-      userRepos,
-      and(
-        eq(userRepos.repoId, repoTags.repoId),
-        eq(userRepos.userId, repoTags.userId),
-      ),
-    )
-    .where(
-      and(
-        eq(repoTags.userId, userId),
-        source === "owned"
-          ? eq(userRepos.isOwned, 1)
-          : source === "starred"
-            ? eq(userRepos.isStarred, 1)
-            : undefined,
-      ),
-    )
-    .all()
+): Promise<Map<number, number>> {
+  const sourceCondition =
+    source === "owned"
+      ? sql`AND ur.is_owned = 1`
+      : source === "starred"
+        ? sql`AND ur.is_starred = 1`
+        : sql``
 
-  const result = new Map<number, Set<number>>()
-  for (const row of rows) {
-    const set = result.get(row.tagId) ?? new Set<number>()
-    set.add(row.repoId)
-    result.set(row.tagId, set)
-  }
-  return result
+  const rows = await db.all<{ tagId: number; total: number }>(sql`
+    WITH RECURSIVE sub(root_id, tag_id, depth) AS (
+      SELECT ${tags.id}, ${tags.id}, 0 FROM ${tags} WHERE ${tags.userId} = ${userId}
+      UNION ALL
+      SELECT sub.root_id, t.id, sub.depth + 1 FROM ${tags} t JOIN sub ON t.parent_id = sub.tag_id
+      WHERE t.user_id = ${userId} AND sub.depth < ${TAG_MAX_DEPTH}
+    )
+    SELECT sub.root_id AS tagId, COUNT(DISTINCT rt.repo_id) AS total
+    FROM sub
+    JOIN ${repoTags} rt ON rt.user_id = ${userId} AND rt.tag_id = sub.tag_id
+    JOIN ${userRepos} ur ON ur.user_id = ${userId} AND ur.repo_id = rt.repo_id ${sourceCondition}
+    GROUP BY sub.root_id
+  `)
+
+  return new Map(rows.map((row) => [row.tagId, row.total]))
 }
 
 /**
@@ -380,6 +375,7 @@ export async function updateTag(
       name: tags.name,
       description: tags.description,
       parentId: tags.parentId,
+      role: tags.role,
     })
     .from(tags)
     .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
@@ -397,8 +393,10 @@ export async function updateTag(
   const parentProvided = input.parentId !== undefined
   const nextParentId = parentProvided ? input.parentId : current.parentId
 
-  if (parentProvided) {
-    await assertValidParent(db, userId, tagId, input.parentId ?? null)
+  if (parentProvided && current.role === "orphan") {
+    throw new TagHierarchyError(
+      `「${current.name}」是专用标签，不支持变更层级`,
+    )
   }
 
   if (
@@ -409,33 +407,63 @@ export async function updateTag(
     return { id: current.id, name: current.name }
   }
 
-  await db
-    .update(tags)
-    .set({
-      name: nextName,
-      description: nextDescription,
-      parentId: nextParentId ?? null,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
-    .run()
+  // 校验与写入必须在同一事务里：分开做的话，两个请求并发互挂父子都能通过校验，
+  // 然后各自写入形成环，而无上限的递归 CTE 成环会把进程跑到 OOM。
+  await db.transaction(async (tx) => {
+    if (parentProvided) {
+      await assertValidParent(tx, userId, tagId, input.parentId ?? null)
+    }
+    await tx
+      .update(tags)
+      .set({
+        name: nextName,
+        description: nextDescription,
+        parentId: nextParentId ?? null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
+      .run()
+  })
 
   return { id: current.id, name: nextName }
 }
 
-/** 取（必要时创建）承接"父标签被删除后遗留子标签"的专用标签 */
+/** 取（必要时创建）承接"父标签被删除后遗留子标签"的专用标签，身份由 role 标记 */
 async function getOrCreateOrphanTag(
   db: AppDatabase,
   userId: number,
 ): Promise<TagOption> {
-  const existing = await findTagByName(db, userId, ORPHAN_TAG_NAME)
-  if (existing) return existing
-  return createTag(
-    db,
-    userId,
-    ORPHAN_TAG_NAME,
-    "父标签被删除后，子标签会先移到这里，可手动调整归属",
-  )
+  const byRole = await db
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .where(and(eq(tags.userId, userId), eq(tags.role, "orphan")))
+    .get()
+  if (byRole) return byRole
+
+  // 兼容：role 列上线前若已有同名标签，直接把它升为专用标签，避免重名冲突
+  const byName = await findTagByName(db, userId, ORPHAN_TAG_NAME)
+  if (byName) {
+    await db
+      .update(tags)
+      .set({ role: "orphan" })
+      .where(and(eq(tags.userId, userId), eq(tags.id, byName.id)))
+      .run()
+    return byName
+  }
+
+  const now = new Date().toISOString()
+  const [inserted] = await db
+    .insert(tags)
+    .values({
+      userId,
+      name: ORPHAN_TAG_NAME,
+      description: "父标签被删除后，子标签会先移到这里，可手动调整归属",
+      role: "orphan",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning({ id: tags.id })
+  return { id: inserted.id, name: ORPHAN_TAG_NAME }
 }
 
 /**
@@ -450,15 +478,15 @@ export async function deleteTag(
   tagId: number,
 ): Promise<{ ok: boolean; movedChildren: number }> {
   const existing = await db
-    .select({ id: tags.id, name: tags.name })
+    .select({ id: tags.id, name: tags.name, role: tags.role })
     .from(tags)
     .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
     .get()
   if (!existing) return { ok: false, movedChildren: 0 }
-  if (existing.name === ORPHAN_TAG_NAME) {
-    // 专用标签是登记表的落点，删掉就没人承接遗留子标签了，因此禁止删除。
+  if (existing.role === "orphan") {
+    // 专用标签是遗留子标签的落点，删掉就没人承接了，因此禁止删除。
     // 想处理它下面的标签，请先把它们移到其他父级下。
-    throw new TagHierarchyError(`「${ORPHAN_TAG_NAME}」是专用标签，不支持删除`)
+    throw new TagHierarchyError(`「${existing.name}」是专用标签，不支持删除`)
   }
 
   const children = await db

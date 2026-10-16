@@ -14,6 +14,8 @@ export interface TagTreeNode {
   name: string
   description: string | null
   repoCount: number
+  /** 用途标记：orphan = 承接被删父标签遗留子标签的专用标签 */
+  role: "orphan" | null
   parentId: number | null
   depth: number
   path: string

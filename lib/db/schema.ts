@@ -63,6 +63,11 @@ export const tags = sqliteTable(
     description: text("description"),
     /** 父标签 id；NULL 表示顶级标签（1 级） */
     parentId: integer("parent_id").references((): AnySQLiteColumn => tags.id),
+    /**
+     * 标签用途标记，NULL 为普通标签。
+     * 用它而不是名称来识别专用标签，改名后身份不会丢。
+     */
+    role: text("role", { enum: ["orphan"] }),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at"),
   },

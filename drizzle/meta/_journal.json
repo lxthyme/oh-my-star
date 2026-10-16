@@ -22,6 +22,13 @@
       "when": 1792134619967,
       "tag": "0002_abnormal_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792137278757,
+      "tag": "0003_ordinary_master_chief",
+      "breakpoints": true
     }
   ]
 }

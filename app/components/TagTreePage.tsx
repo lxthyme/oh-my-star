@@ -18,7 +18,6 @@ import {
 import { ArrowLeftOutlined, SearchOutlined } from "@ant-design/icons"
 import dynamic from "next/dynamic"
 import { fetchJson } from "../lib/api-client"
-import { ORPHAN_TAG_NAME } from "@/lib/tag-limits"
 import type { TagTreeNode } from "./TagTreeChart"
 
 const { Text, Paragraph } = Typography
@@ -155,7 +154,7 @@ export default function TagTreePage() {
               </div>
             </div>
           )}
-          {selected.name === ORPHAN_TAG_NAME && (
+          {selected.role === "orphan" && (
             <Alert
               type="info"
               showIcon

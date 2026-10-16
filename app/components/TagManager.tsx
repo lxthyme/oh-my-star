@@ -41,6 +41,7 @@ interface TagRow {
   name: string
   description: string | null
   repoCount: number
+  role: "orphan" | null
   parentId: number | null
   depth: number
   path: string
@@ -130,6 +131,12 @@ export default function TagManager() {
     )
   }, [tags, keyword])
 
+  // 专用标签可以被改名，文案里要显示它的当前名称
+  const orphanTagName = useMemo(
+    () => tags.find((tag) => tag.role === "orphan")?.name ?? ORPHAN_TAG_NAME,
+    [tags],
+  )
+
   // 父级候选：不能是自己，也不能是自己的子孙
   const parentOptions = useMemo(() => {
     const excluded = editing ? collectDescendantIds(tags, editing.id) : null
@@ -208,7 +215,7 @@ export default function TagManager() {
     if (!ok) return
     message.success(
       tag.childrenCount > 0
-        ? `已删除标签「${tag.name}」，${tag.childrenCount} 个子标签已移到「${ORPHAN_TAG_NAME}」`
+        ? `已删除标签「${tag.name}」，${tag.childrenCount} 个子标签已移到「${orphanTagName}」`
         : `已删除标签「${tag.name}」`,
     )
     await fetchTags()
@@ -300,9 +307,9 @@ export default function TagManager() {
           >
             编辑
           </Button>
-          {tag.name === ORPHAN_TAG_NAME ? (
+          {tag.role === "orphan" ? (
             <Tooltip
-              title={`「${ORPHAN_TAG_NAME}」是专用标签，不支持删除；请先把它的子标签移到其他标签下。`}
+              title={`「${tag.name}」是专用标签，不支持删除；请先把它的子标签移到其他标签下。`}
             >
               <Button
                 type="link"
@@ -321,7 +328,7 @@ export default function TagManager() {
                   ? `该标签已用于 ${tag.totalRepoCount} 个仓库，删除后这些仓库会移除此标签，且无法恢复。`
                   : "删除后无法恢复。",
                 tag.childrenCount > 0
-                  ? `${tag.childrenCount} 个子标签将移动到「${ORPHAN_TAG_NAME}」下，之后可手动调整。`
+                  ? `${tag.childrenCount} 个子标签将移动到「${orphanTagName}」下，之后可手动调整。`
                   : null,
               ]
                 .filter(Boolean)
@@ -445,7 +452,11 @@ export default function TagManager() {
           <Form.Item
             name="parentId"
             label="父标签"
-            extra="不选择则为顶级标签；选中父标签后，筛选该父标签会一并匹配它的子标签。"
+            extra={
+              editing?.role === "orphan"
+                ? "专用标签不支持变更层级；可以改名称。"
+                : "不选择则为顶级标签；选中父标签后，筛选该父标签会一并匹配它的子标签。"
+            }
           >
             <Select
               allowClear
@@ -453,7 +464,7 @@ export default function TagManager() {
               options={parentOptions}
               optionFilterProp="label"
               showSearch
-              disabled={tags.length === 0}
+              disabled={tags.length === 0 || editing?.role === "orphan"}
             />
           </Form.Item>
         </Form>

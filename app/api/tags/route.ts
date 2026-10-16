@@ -4,14 +4,19 @@ import { db } from "@/lib/db/client"
 import { listTags, createTag } from "@/lib/db/tags"
 import { apiErrorResponse } from "@/lib/api-error"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await auth()
   if (!session?.userId) {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
+  const source = request.nextUrl.searchParams.get("source")
+  const repoSource = source === "owned" || source === "starred" ? source : undefined
+
   try {
-    return NextResponse.json({ tags: await listTags(db, session.userId) })
+    return NextResponse.json({
+      tags: await listTags(db, session.userId, repoSource),
+    })
   } catch (error) {
     return apiErrorResponse(error)
   }

@@ -72,12 +72,14 @@ export default function RepoList({ source }: RepoListProps) {
 
   const fetchTags = useCallback(async () => {
     try {
-      const json = await fetchJson<{ tags: TagOption[] }>("/api/tags")
+      const json = await fetchJson<{ tags: TagOption[] }>(
+        `/api/tags?source=${source}`,
+      )
       setAllTags(json.tags)
     } catch (error) {
       message.error(error instanceof Error ? `获取标签失败: ${error.message}` : "获取标签失败")
     }
-  }, [])
+  }, [source])
 
   const fetchRepos = useCallback(async () => {
     setLoading(true)

@@ -1,10 +1,36 @@
 import { describe, expect, it } from "vitest"
 import { createTestDb } from "./test-helpers"
 import type { AppDatabase } from "./client"
-import { repos } from "./schema"
+import { repos, userRepos } from "./schema"
 import { listTags, createTag, getRepoTags, setRepoTags } from "./tags"
 
 const TEST_USER_ID = 1001
+
+async function insertRepoWithSource(
+  db: AppDatabase,
+  id: number,
+  source: { isOwned?: number; isStarred?: number },
+) {
+  await db
+    .insert(repos)
+    .values({
+      id,
+      fullName: `octocat/${id}`,
+      name: `r${id}`,
+      ownerLogin: "octocat",
+      htmlUrl: `https://github.com/octocat/${id}`,
+    })
+    .run()
+  await db
+    .insert(userRepos)
+    .values({
+      userId: TEST_USER_ID,
+      repoId: id,
+      isOwned: source.isOwned ?? 0,
+      isStarred: source.isStarred ?? 0,
+    })
+    .run()
+}
 
 describe("createTag", () => {
   it("creates a new tag", async () => {
@@ -12,7 +38,7 @@ describe("createTag", () => {
     const tag = await createTag(db, TEST_USER_ID, "cli-tools")
     expect(tag.name).toBe("cli-tools")
     expect(await listTags(db, TEST_USER_ID)).toEqual([
-      { id: tag.id, name: "cli-tools" },
+      { id: tag.id, name: "cli-tools", repoCount: 0 },
     ])
   })
 
@@ -41,6 +67,45 @@ describe("listTags", () => {
       "alpha",
       "zebra",
     ])
+  })
+
+  it("counts repos per tag, scoped by source", async () => {
+    const db = await createTestDb()
+    await insertRepoWithSource(db, 1, { isOwned: 1 })
+    await insertRepoWithSource(db, 2, { isOwned: 1 })
+    await insertRepoWithSource(db, 3, { isStarred: 1 })
+
+    const cli = await createTag(db, TEST_USER_ID, "cli")
+    const docs = await createTag(db, TEST_USER_ID, "docs")
+    await setRepoTags(db, TEST_USER_ID, 1, ["cli"])
+    await setRepoTags(db, TEST_USER_ID, 2, ["cli", "docs"])
+    await setRepoTags(db, TEST_USER_ID, 3, ["cli"])
+
+    const countsAll = Object.fromEntries(
+      (await listTags(db, TEST_USER_ID)).map((t) => [t.name, t.repoCount]),
+    )
+    expect(countsAll).toEqual({ cli: 3, docs: 1 })
+
+    const countsOwned = Object.fromEntries(
+      (await listTags(db, TEST_USER_ID, "owned")).map((t) => [
+        t.name,
+        t.repoCount,
+      ]),
+    )
+    expect(countsOwned).toEqual({ cli: 2, docs: 1 })
+
+    const countsStarred = Object.fromEntries(
+      (await listTags(db, TEST_USER_ID, "starred")).map((t) => [
+        t.name,
+        t.repoCount,
+      ]),
+    )
+    expect(countsStarred).toEqual({ cli: 1, docs: 0 })
+
+    // sanity: ids map to expected entries
+    expect((await listTags(db, TEST_USER_ID, "owned")).map((t) => t.id)).toEqual(
+      [cli.id, docs.id].sort((a, b) => a - b),
+    )
   })
 })
 

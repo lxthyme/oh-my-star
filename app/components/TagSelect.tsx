@@ -6,6 +6,8 @@ import { Select } from "antd"
 export interface TagOption {
   id: number
   name: string
+  /** 该标签下的 repo 数量，由 /api/tags 按当前列表来源统计 */
+  repoCount?: number
 }
 
 interface TagSelectProps {

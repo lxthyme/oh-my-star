@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { Input, Select, Space, Switch } from "antd"
 import { SortAscendingOutlined } from "@ant-design/icons"
 import type { TagOption } from "./TagSelect"
@@ -91,10 +92,14 @@ export default function FilterBar({
         { label: "Stars", value: "stars" },
       ]
 
-  const tagOptions = [
+  const tagOptions: { label: string; value: string; repoCount?: number }[] = [
     { label: "标签：全部", value: "all" },
     { label: "未打标", value: "untagged" },
-    ...tags.map((tag) => ({ label: tag.name, value: String(tag.id) })),
+    ...tags.map((tag) => ({
+      label: tag.name,
+      value: String(tag.id),
+      repoCount: tag.repoCount ?? 0,
+    })),
   ]
 
   return (
@@ -159,6 +164,24 @@ export default function FilterBar({
           options={tagOptions}
           className="min-w-[120px] flex-1 sm:max-w-[160px]"
           onChange={(tag) => onChange({ ...value, tag: tag ?? "all" })}
+          optionRender={(option) => {
+            const { label, data } = option as {
+              label: ReactNode
+              data: { value?: string | number; repoCount?: number }
+            }
+            const optionValue = data?.value ?? option.value
+            if (optionValue === "all" || optionValue === "untagged") {
+              return <span>{label}</span>
+            }
+            return (
+              <span className="flex items-center justify-between gap-3">
+                <span>{label}</span>
+                <span className="text-xs opacity-60">
+                  {data?.repoCount ?? 0}
+                </span>
+              </span>
+            )
+          }}
         />
         <Select
           {...SHARED_SELECT}

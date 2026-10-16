@@ -1,22 +1,57 @@
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import type { AppDatabase } from "./client"
-import { repoTags, tags } from "./schema"
+import { repoTags, tags, userRepos } from "./schema"
+import type { RepoSource } from "./repos"
 
 export interface TagOption {
   id: number
   name: string
 }
 
+export interface TagWithCount extends TagOption {
+  repoCount: number
+}
+
 export async function listTags(
   db: AppDatabase,
   userId: number,
-): Promise<TagOption[]> {
-  return db
+  source?: RepoSource,
+): Promise<TagWithCount[]> {
+  const tagRows = await db
     .select({ id: tags.id, name: tags.name })
     .from(tags)
     .where(eq(tags.userId, userId))
     .orderBy(tags.name)
     .all()
+
+  const countRows = await db
+    .select({ tagId: repoTags.tagId, count: sql<number>`count(*)` })
+    .from(repoTags)
+    .innerJoin(
+      userRepos,
+      and(
+        eq(userRepos.repoId, repoTags.repoId),
+        eq(userRepos.userId, repoTags.userId),
+      ),
+    )
+    .where(
+      and(
+        eq(repoTags.userId, userId),
+        source === "owned"
+          ? eq(userRepos.isOwned, 1)
+          : source === "starred"
+            ? eq(userRepos.isStarred, 1)
+            : undefined,
+      ),
+    )
+    .groupBy(repoTags.tagId)
+    .all()
+
+  const countByTagId = new Map(countRows.map((row) => [row.tagId, row.count]))
+  return tagRows.map((tag) => ({
+    ...tag,
+    repoCount: countByTagId.get(tag.id) ?? 0,
+  }))
 }
 
 export async function createTag(

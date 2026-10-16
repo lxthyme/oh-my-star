@@ -247,6 +247,7 @@ export default function TagTreePage() {
                   tags={tags}
                   selectedId={effectiveSelectedId}
                   initialTreeDepth={effectiveDepth}
+                  focusId={matchedId}
                   orient={orient}
                   onSelect={setSelectedId}
                 />

@@ -77,7 +77,11 @@ export default function RepoList({ source }: RepoListProps) {
       )
       setAllTags(json.tags)
     } catch (error) {
-      message.error(error instanceof Error ? `获取标签失败: ${error.message}` : "获取标签失败")
+      message.error(
+        error instanceof Error
+          ? `获取标签失败: ${error.message}`
+          : "获取标签失败",
+      )
     }
   }, [source])
 
@@ -104,7 +108,11 @@ export default function RepoList({ source }: RepoListProps) {
 
       setData(await fetchJson<ReposResponse>(`/api/repos?${qs.toString()}`))
     } catch (error) {
-      message.error(error instanceof Error ? `获取仓库失败: ${error.message}` : "获取仓库失败")
+      message.error(
+        error instanceof Error
+          ? `获取仓库失败: ${error.message}`
+          : "获取仓库失败",
+      )
     } finally {
       setLoading(false)
     }
@@ -117,6 +125,24 @@ export default function RepoList({ source }: RepoListProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTags()
   }, [fetchTags])
+
+  // 深链 ?tag=<id> 指向已被删除/不属于当前用户的标签时，列表会静默为空。
+  // 这里检测出来并把筛选重置为「全部」，同时给用户一句提示。
+  useEffect(() => {
+    if (allTags.length === 0) return
+    if (filters.tag === "all" || filters.tag === "untagged") return
+    const tagId = Number(filters.tag)
+    if (!Number.isInteger(tagId)) return
+    if (allTags.some((tag) => tag.id === tagId)) return
+
+    message.info("该标签已不存在，已重置筛选为「全部」")
+    const next = new URLSearchParams(searchParams.toString())
+    next.set("tag", "all")
+    next.delete("page")
+    router.replace(`?${next.toString()}`)
+    // 仅在 allTags 加载完成后、检测到失效 id 时触发一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTags, filters.tag])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -155,7 +181,9 @@ export default function RepoList({ source }: RepoListProps) {
       if (!res.ok) await parseJsonResponse(res)
       return true
     } catch (error) {
-      message.error(error instanceof Error ? `操作失败: ${error.message}` : "操作失败")
+      message.error(
+        error instanceof Error ? `操作失败: ${error.message}` : "操作失败",
+      )
       return false
     }
   }

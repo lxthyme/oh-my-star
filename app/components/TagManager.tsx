@@ -55,6 +55,44 @@ interface TagFormValues {
   parentId?: number | null
 }
 
+/** 树形表格里的节点类型，比 TagRow 多一个 children 字段 */
+type TagTreeNode = TagRow & { children?: TagTreeNode[] }
+
+/**
+ * 把扁平标签列表组装成树，并按关键字过滤。
+ * - 节点自身匹配，或任意后代匹配，节点都保留
+ * - 同级按名称排序
+ * - 没有匹配到任何节点的子树不会出现在结果里
+ */
+function buildTagTree(tags: TagRow[], keyword: string): TagTreeNode[] {
+  const kw = keyword.trim().toLowerCase()
+  const selfMatch = (t: TagRow) =>
+    !kw ||
+    t.name.toLowerCase().includes(kw) ||
+    (t.description ?? "").toLowerCase().includes(kw)
+
+  const byParent = new Map<number | null, TagRow[]>()
+  for (const tag of tags) {
+    const key = tag.parentId
+    const list = byParent.get(key) ?? []
+    list.push(tag)
+    byParent.set(key, list)
+  }
+
+  const build = (parentId: number | null): TagTreeNode[] => {
+    const children = byParent.get(parentId) ?? []
+    const result: TagTreeNode[] = []
+    for (const child of children.sort((a, b) => a.name.localeCompare(b.name))) {
+      const grandchildren = build(child.id)
+      if (!selfMatch(child) && grandchildren.length === 0) continue
+      result.push({ ...child, children: grandchildren })
+    }
+    return result
+  }
+
+  return build(null)
+}
+
 /** 收集某标签的全部子孙 id（含间接），带自环保护 */
 function collectDescendantIds(tags: TagRow[], rootId: number): Set<number> {
   const childrenOf = new Map<number, number[]>()
@@ -130,6 +168,12 @@ export default function TagManager() {
       ),
     )
   }, [tags, keyword])
+
+  // 树形表格：扁平过滤后再组装成父子结构；搜索时保留命中节点的祖先链
+  const tagTree = useMemo(
+    () => buildTagTree(visibleTags, keyword),
+    [visibleTags, keyword],
+  )
 
   // 专用标签可以被改名，文案里要显示它的当前名称
   const orphanTagName = useMemo(
@@ -226,25 +270,14 @@ export default function TagManager() {
       title: "标签",
       dataIndex: "name",
       sorter: (a, b) => a.path.localeCompare(b.path),
-      render: (_name: string, row) => {
-        const segments = row.path.split(" / ")
-        const prefix = segments.slice(0, -1)
-        return (
-          <Space size={4} wrap={false}>
-            {prefix.length > 0 && (
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {prefix.join(" / ")} /
-              </Text>
-            )}
-            <AntTag
-              color={row.depth > 1 ? "geekblue" : "blue"}
-              style={{ margin: 0 }}
-            >
-              {row.name}
-            </AntTag>
-          </Space>
-        )
-      },
+      render: (_name: string, row) => (
+        <AntTag
+          color={row.depth > 1 ? "geekblue" : "blue"}
+          style={{ margin: 0 }}
+        >
+          {row.name}
+        </AntTag>
+      ),
     },
     {
       title: "描述",
@@ -391,7 +424,7 @@ export default function TagManager() {
       </div>
 
       <Spin spinning={loading}>
-        {!loading && visibleTags.length === 0 ? (
+        {!loading && tagTree.length === 0 ? (
           <Empty
             style={{ margin: "80px 0" }}
             description={
@@ -399,17 +432,13 @@ export default function TagManager() {
             }
           />
         ) : (
-          <Table<TagRow>
+          <Table<TagTreeNode>
             rowKey="id"
             columns={columns}
-            dataSource={visibleTags}
+            dataSource={tagTree}
             scroll={{ x: true }}
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              pageSizeOptions: [10, 20, 50, 100],
-              showTotal: (total) => `Total ${total} items`,
-            }}
+            pagination={false}
+            defaultExpandAllRows
           />
         )}
       </Spin>

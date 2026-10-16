@@ -29,6 +29,11 @@ interface TagTreeChartProps {
   selectedId: number | null
   /** -1 全部展开；1 只展开一层；2 展开两层 */
   initialTreeDepth: number
+  /**
+   * 定位到该标签：只展开它及其祖先链，其余节点收起。
+   * 为 null 时按 initialTreeDepth 决定展开层级。
+   */
+  focusId?: number | null
   orient: "LR" | "TB"
   onSelect: (id: number | null) => void
 }
@@ -44,6 +49,8 @@ interface TreeNode {
   childrenCount: number
   depth: number
   itemStyle?: Record<string, unknown>
+  /** true = 初始状态收起；仅用于定位时控制展开范围 */
+  collapsed?: boolean
   children: TreeNode[]
 }
 
@@ -53,7 +60,22 @@ function buildTree(
   tags: TagTreeNode[],
   selectedId: number | null,
   highlightColor: string,
+  focusId: number | null = null,
 ): TreeNode {
+  // 定位时只保留「焦点节点 + 祖先链」为展开，其余全部收起，
+  // 避免为了看见一个节点把整棵树摊开。
+  const expanded = new Set<number>()
+  if (focusId !== null) {
+    const parentOf = new Map(tags.map((tag) => [tag.id, tag.parentId]))
+    let cursor: number | null = focusId
+    const guard = new Set<number>()
+    while (cursor !== null && !guard.has(cursor)) {
+      guard.add(cursor)
+      expanded.add(cursor)
+      cursor = parentOf.get(cursor) ?? null
+    }
+  }
+
   const nodes = new Map<number, TreeNode>()
   for (const tag of tags) {
     nodes.set(tag.id, {
@@ -66,6 +88,7 @@ function buildTree(
       path: tag.path,
       childrenCount: tag.childrenCount,
       depth: tag.depth,
+      collapsed: focusId === null ? undefined : !expanded.has(tag.id),
       children: [],
     })
   }
@@ -116,6 +139,7 @@ export default function TagTreeChart({
   tags,
   selectedId,
   initialTreeDepth,
+  focusId = null,
   orient,
   onSelect,
 }: TagTreeChartProps) {
@@ -128,8 +152,8 @@ export default function TagTreeChart({
   }, [onSelect])
 
   const treeData = useMemo(
-    () => buildTree(tags, selectedId, token.colorWarning),
-    [tags, selectedId, token.colorWarning],
+    () => buildTree(tags, selectedId, token.colorWarning, focusId),
+    [tags, selectedId, token.colorWarning, focusId],
   )
   const maxValue = useMemo(
     () => tags.reduce((max, tag) => Math.max(max, tag.totalRepoCount), 0),
@@ -246,6 +270,7 @@ export default function TagTreeChart({
     maxValue,
     orient,
     initialTreeDepth,
+    focusId,
     token.colorText,
     token.colorPrimary,
     token.colorBorderSecondary,

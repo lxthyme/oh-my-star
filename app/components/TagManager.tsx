@@ -86,7 +86,12 @@ function buildTagTree(tags: TagRow[], keyword: string): TagTreeNode[] {
     for (const child of children.sort((a, b) => a.name.localeCompare(b.name))) {
       const grandchildren = build(child.id)
       if (!selfMatch(child) && grandchildren.length === 0) continue
-      result.push({ ...child, children: grandchildren })
+      // 叶子节点不带 children，避免 antd 树表为它们渲染展开按钮
+      result.push(
+        grandchildren.length > 0
+          ? { ...child, children: grandchildren }
+          : { ...child },
+      )
     }
     return result
   }

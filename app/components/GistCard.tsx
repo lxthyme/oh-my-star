@@ -64,12 +64,6 @@ function formatDateTime(iso: string | null): string | null {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-/** 卡片标题：优先用描述，没有描述就退回第一个文件名 */
-function gistTitle(gist: GistCardData): string {
-  if (gist.description) return gist.description
-  return gist.files[0]?.name || gist.id
-}
-
 export default function GistCard({
   gist,
   allTags,
@@ -155,20 +149,22 @@ export default function GistCard({
           </Text>
         </Space>
 
-        <Link
-          href={gist.htmlUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ width: "100%" }}
-        >
-          <Paragraph
-            strong
-            ellipsis={{ rows: 1, tooltip: gistTitle(gist) }}
-            style={{ marginBottom: 0 }}
+        {gist.description && (
+          <Link
+            href={gist.htmlUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ width: "100%" }}
           >
-            <Highlight text={gistTitle(gist)} keyword={keyword} />
-          </Paragraph>
-        </Link>
+            <Paragraph
+              type="secondary"
+              ellipsis={{ rows: 2, tooltip: gist.description }}
+              style={{ marginBottom: 0 }}
+            >
+              <Highlight text={gist.description} keyword={keyword} />
+            </Paragraph>
+          </Link>
+        )}
 
         {previewFile && (
           <pre

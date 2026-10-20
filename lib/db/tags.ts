@@ -1,7 +1,6 @@
 import { and, eq, ne, sql } from "drizzle-orm"
 import type { AppDatabase } from "./client"
-import { repoTags, tags, userRepos } from "./schema"
-import type { RepoSource } from "./repos"
+import { gistTags, repoTags, tags, userGists, userRepos } from "./schema"
 import { ORPHAN_TAG_NAME, TAG_MAX_DEPTH } from "../tag-limits"
 
 export interface TagOption {
@@ -9,13 +8,21 @@ export interface TagOption {
   name: string
 }
 
+/** 标签归属的实体类型：repo = 仓库标签，gist = Gist 标签 */
+export type TagScope = "repo" | "gist"
+/** 标签计数时按哪个来源统计，undefined = 不区分来源 */
+export type TagSource = "owned" | "starred"
+
 /** 标签用途标记：NULL 为普通标签；orphan = 承接被删父标签遗留子标签的专用标签 */
 export type TagRole = "orphan" | null
 
 export interface TagWithCount extends TagOption {
   /** 标签描述，未填写时为 null */
   description: string | null
-  /** 直接打上该标签的仓库数 */
+  /**
+   * 直接打上该标签的实体数。
+   * 字段名沿用「仓库」，实际含义取决于 scope：gist 标签统计的是 Gist 数。
+   */
   repoCount: number
   /**
    * 用途标记。按 role 而不是名称识别专用标签，改名后身份不会丢。
@@ -29,8 +36,34 @@ export interface TagWithCount extends TagOption {
   path: string
   /** 直接子标签数量 */
   childrenCount: number
-  /** 含子孙标签的仓库数（同一仓库只计一次） */
+  /** 含子孙标签的实体数（同一实体只计一次），含义同 repoCount 取决于 scope */
   totalRepoCount: number
+}
+
+/**
+ * 标签关联的实体表：repo 与 gist 各有一套关联表，同名标签两个空间互不干扰。
+ * gist 的主键是字符串，所以两套表的 id 列类型不同，这里统一取成列对象再拼 SQL。
+ */
+function assocTables(scope: TagScope) {
+  return scope === "gist"
+    ? {
+        assoc: gistTags,
+        assocTagId: gistTags.tagId,
+        assocEntityId: gistTags.gistId,
+        owner: userGists,
+        ownerEntityId: userGists.gistId,
+        owned: userGists.isOwned,
+        starred: userGists.isStarred,
+      }
+    : {
+        assoc: repoTags,
+        assocTagId: repoTags.tagId,
+        assocEntityId: repoTags.repoId,
+        owner: userRepos,
+        ownerEntityId: userRepos.repoId,
+        owned: userRepos.isOwned,
+        starred: userRepos.isStarred,
+      }
 }
 
 export interface TagUpdateInput {
@@ -70,13 +103,30 @@ export async function findTagByName(
   db: AppDatabase,
   userId: number,
   name: string,
+  scope: TagScope = "repo",
 ): Promise<TagOption | null> {
   const row = await db
     .select({ id: tags.id, name: tags.name })
     .from(tags)
-    .where(and(eq(tags.userId, userId), eq(tags.name, name)))
+    .where(
+      and(eq(tags.userId, userId), eq(tags.name, name), eq(tags.scope, scope)),
+    )
     .get()
   return row ?? null
+}
+
+/** 取标签归属的实体类型；标签不存在时返回 null */
+export async function findTagScope(
+  db: AppDatabase,
+  userId: number,
+  tagId: number,
+): Promise<TagScope | null> {
+  const row = await db
+    .select({ scope: tags.scope })
+    .from(tags)
+    .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
+    .get()
+  return row?.scope ?? null
 }
 
 /**
@@ -173,7 +223,8 @@ async function assertValidParent(
 export async function listTags(
   db: AppDatabase,
   userId: number,
-  source?: RepoSource,
+  source?: TagSource,
+  scope: TagScope = "repo",
 ): Promise<TagWithCount[]> {
   const tagRows = await db
     .select({
@@ -184,32 +235,22 @@ export async function listTags(
       role: tags.role,
     })
     .from(tags)
-    .where(eq(tags.userId, userId))
+    .where(and(eq(tags.userId, userId), eq(tags.scope, scope)))
     .orderBy(tags.name)
     .all()
 
-  const countRows = await db
-    .select({ tagId: repoTags.tagId, count: sql<number>`count(*)` })
-    .from(repoTags)
-    .innerJoin(
-      userRepos,
-      and(
-        eq(userRepos.repoId, repoTags.repoId),
-        eq(userRepos.userId, repoTags.userId),
-      ),
-    )
-    .where(
-      and(
-        eq(repoTags.userId, userId),
-        source === "owned"
-          ? eq(userRepos.isOwned, 1)
-          : source === "starred"
-            ? eq(userRepos.isStarred, 1)
-            : undefined,
-      ),
-    )
-    .groupBy(repoTags.tagId)
-    .all()
+  const assoc = assocTables(scope)
+  const countRows = await db.all<{ tagId: number; count: number }>(sql`
+    SELECT ${assoc.assocTagId} AS tagId, COUNT(*) AS count
+    FROM ${assoc.assoc}
+    JOIN ${assoc.owner}
+      ON ${assoc.owner.userId} = ${userId}
+      AND ${assoc.ownerEntityId} = ${assoc.assocEntityId}
+    WHERE ${assoc.assoc.userId} = ${userId}
+      ${source === "owned" ? sql`AND ${assoc.owned} = 1` : sql``}
+      ${source === "starred" ? sql`AND ${assoc.starred} = 1` : sql``}
+    GROUP BY ${assoc.assocTagId}
+  `)
 
   const repoCountByTagId = new Map(
     countRows.map((row) => [row.tagId, row.count]),
@@ -222,7 +263,7 @@ export async function listTags(
   // 含子级的仓库数由 SQL 递归聚合，避免把成千上万行 repo_tags 拉进 JS。
   // 没有任何层级时含子级就等于自身数量，省掉这次查询。
   const totalRepoCountById = hasHierarchy
-    ? await countTotalReposByTagId(db, userId, source)
+    ? await countTotalItemsByTagId(db, userId, source, scope)
     : new Map<number, number>()
 
   const depthById = new Map<number, number>()
@@ -291,32 +332,31 @@ export async function listTags(
 }
 
 /**
- * 每个标签含子孙的仓库数（同一仓库经多条命中路径只算一次）。
- * 递归 CTE 展开子树后再 COUNT(DISTINCT repo_id)，带 depth 上限防成环。
+ * 每个标签含子孙的实体数（同一实体经多条命中路径只算一次）。
+ * 递归 CTE 展开子树后再 COUNT(DISTINCT 实体 id)，带 depth 上限防成环。
  */
-async function countTotalReposByTagId(
+async function countTotalItemsByTagId(
   db: AppDatabase,
   userId: number,
-  source?: RepoSource,
+  source?: TagSource,
+  scope: TagScope = "repo",
 ): Promise<Map<number, number>> {
-  const sourceCondition =
-    source === "owned"
-      ? sql`AND ur.is_owned = 1`
-      : source === "starred"
-        ? sql`AND ur.is_starred = 1`
-        : sql``
+  const assoc = assocTables(scope)
 
   const rows = await db.all<{ tagId: number; total: number }>(sql`
     WITH RECURSIVE sub(root_id, tag_id, depth) AS (
-      SELECT ${tags.id}, ${tags.id}, 0 FROM ${tags} WHERE ${tags.userId} = ${userId}
+      SELECT ${tags.id}, ${tags.id}, 0 FROM ${tags}
+      WHERE ${tags.userId} = ${userId} AND ${tags.scope} = ${scope}
       UNION ALL
       SELECT sub.root_id, t.id, sub.depth + 1 FROM ${tags} t JOIN sub ON t.parent_id = sub.tag_id
-      WHERE t.user_id = ${userId} AND sub.depth < ${TAG_MAX_DEPTH}
+      WHERE t.user_id = ${userId} AND t.scope = ${scope} AND sub.depth < ${TAG_MAX_DEPTH}
     )
-    SELECT sub.root_id AS tagId, COUNT(DISTINCT rt.repo_id) AS total
+    SELECT sub.root_id AS tagId, COUNT(DISTINCT ${assoc.assocEntityId}) AS total
     FROM sub
-    JOIN ${repoTags} rt ON rt.user_id = ${userId} AND rt.tag_id = sub.tag_id
-    JOIN ${userRepos} ur ON ur.user_id = ${userId} AND ur.repo_id = rt.repo_id ${sourceCondition}
+    JOIN ${assoc.assoc} ON ${assoc.assoc.userId} = ${userId} AND ${assoc.assocTagId} = sub.tag_id
+    JOIN ${assoc.owner} ON ${assoc.owner.userId} = ${userId} AND ${assoc.ownerEntityId} = ${assoc.assocEntityId}
+      ${source === "owned" ? sql`AND ${assoc.owned} = 1` : sql``}
+      ${source === "starred" ? sql`AND ${assoc.starred} = 1` : sql``}
     GROUP BY sub.root_id
   `)
 
@@ -334,8 +374,9 @@ export async function createTag(
   name: string,
   description?: string | null,
   parentId?: number | null,
+  scope: TagScope = "repo",
 ): Promise<TagOption> {
-  const existing = await findTagByName(db, userId, name)
+  const existing = await findTagByName(db, userId, name, scope)
   if (existing) return existing
 
   if (parentId !== undefined && parentId !== null) {
@@ -354,6 +395,7 @@ export async function createTag(
       userId,
       name,
       description: normalizeDescription(description),
+      scope,
       parentId: parentId ?? null,
       createdAt: now,
       updatedAt: now,
@@ -432,16 +474,19 @@ export async function updateTag(
 async function getOrCreateOrphanTag(
   db: AppDatabase,
   userId: number,
+  scope: TagScope,
 ): Promise<TagOption> {
   const byRole = await db
     .select({ id: tags.id, name: tags.name })
     .from(tags)
-    .where(and(eq(tags.userId, userId), eq(tags.role, "orphan")))
+    .where(
+      and(eq(tags.userId, userId), eq(tags.role, "orphan"), eq(tags.scope, scope)),
+    )
     .get()
   if (byRole) return byRole
 
   // 兼容：role 列上线前若已有同名标签，直接把它升为专用标签，避免重名冲突
-  const byName = await findTagByName(db, userId, ORPHAN_TAG_NAME)
+  const byName = await findTagByName(db, userId, ORPHAN_TAG_NAME, scope)
   if (byName) {
     await db
       .update(tags)
@@ -458,6 +503,7 @@ async function getOrCreateOrphanTag(
       userId,
       name: ORPHAN_TAG_NAME,
       description: "父标签被删除后，子标签会先移到这里，可手动调整归属",
+      scope,
       role: "orphan",
       createdAt: now,
       updatedAt: now,
@@ -478,7 +524,7 @@ export async function deleteTag(
   tagId: number,
 ): Promise<{ ok: boolean; movedChildren: number }> {
   const existing = await db
-    .select({ id: tags.id, name: tags.name, role: tags.role })
+    .select({ id: tags.id, name: tags.name, role: tags.role, scope: tags.scope })
     .from(tags)
     .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
     .get()
@@ -497,7 +543,9 @@ export async function deleteTag(
 
   // 专用标签在事务外先准备好，避免在事务里嵌套创建
   const orphan =
-    children.length > 0 ? await getOrCreateOrphanTag(db, userId) : null
+    children.length > 0
+      ? await getOrCreateOrphanTag(db, userId, existing.scope)
+      : null
 
   const movedChildren = await db.transaction(async (tx) => {
     if (orphan) {
@@ -526,9 +574,14 @@ export async function deleteTag(
         .run()
     }
 
+    // 标签只有一个 scope，但两套关联表都清一遍，避免历史数据残留导致孤儿行
     await tx
       .delete(repoTags)
       .where(and(eq(repoTags.userId, userId), eq(repoTags.tagId, tagId)))
+      .run()
+    await tx
+      .delete(gistTags)
+      .where(and(eq(gistTags.userId, userId), eq(gistTags.tagId, tagId)))
       .run()
     await tx
       .delete(tags)

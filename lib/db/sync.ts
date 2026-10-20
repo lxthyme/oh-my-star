@@ -1,7 +1,11 @@
 import { eq, sql } from "drizzle-orm"
 import type { AppDatabase } from "./client"
-import { repos, userRepos } from "./schema"
-import type { GitHubRepoData, StarredRepoData } from "../github"
+import { gists, repos, userGists, userRepos } from "./schema"
+import type {
+  GitHubGistData,
+  GitHubRepoData,
+  StarredRepoData,
+} from "../github"
 
 export interface SyncInput {
   owned: GitHubRepoData[]
@@ -150,4 +154,122 @@ export async function getLastSyncedAt(
     .where(eq(userRepos.userId, userId))
     .get()
   return row!.lastSyncedAt
+}
+
+export async function getLastGistSyncedAt(
+  db: AppDatabase,
+  userId: number,
+): Promise<string | null> {
+  const row = await db
+    .select({ lastSyncedAt: sql<string | null>`MAX(${userGists.syncedAt})` })
+    .from(userGists)
+    .where(eq(userGists.userId, userId))
+    .get()
+  return row!.lastSyncedAt
+}
+
+export interface GistSyncInput {
+  owned: GitHubGistData[]
+  starred: GitHubGistData[]
+}
+
+/**
+ * 同步 gist：与 syncRepos 同构，先把该用户的归属标记清零再整体 upsert。
+ * 差异点：gist 的主键是字符串，且接口不返回 starred_at。
+ */
+export async function syncGists(
+  db: AppDatabase,
+  userId: number,
+  input: GistSyncInput,
+): Promise<SyncResult> {
+  const merged = new Map<
+    string,
+    { gist: GitHubGistData; isOwned: boolean; isStarred: boolean }
+  >()
+
+  for (const gist of input.owned) {
+    merged.set(gist.id, { gist, isOwned: true, isStarred: false })
+  }
+  for (const gist of input.starred) {
+    const existing = merged.get(gist.id)
+    merged.set(gist.id, {
+      gist,
+      isOwned: existing?.isOwned ?? false,
+      isStarred: true,
+    })
+  }
+
+  const now = new Date().toISOString()
+  const entries = [...merged.values()]
+
+  const allGistValues = entries.map((entry) => ({
+    id: entry.gist.id,
+    description: entry.gist.description,
+    htmlUrl: entry.gist.htmlUrl,
+    ownerLogin: entry.gist.ownerLogin,
+    ownerAvatar: entry.gist.ownerAvatar,
+    public: entry.gist.public ? 1 : 0,
+    commentsCount: entry.gist.commentsCount,
+    forksCount: entry.gist.forksCount,
+    stargazersCount: entry.gist.stargazersCount,
+    files: JSON.stringify(entry.gist.files),
+    createdAt: entry.gist.createdAt,
+    updatedAt: entry.gist.updatedAt,
+  }))
+
+  const allUserGistValues = entries.map((entry) => ({
+    userId,
+    gistId: entry.gist.id,
+    isOwned: entry.isOwned ? 1 : 0,
+    isStarred: entry.isStarred ? 1 : 0,
+    syncedAt: now,
+  }))
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(userGists)
+      .set({ isOwned: 0, isStarred: 0 })
+      .where(eq(userGists.userId, userId))
+      .run()
+
+    for (let i = 0; i < allGistValues.length; i += CHUNK_SIZE) {
+      await tx
+        .insert(gists)
+        .values(allGistValues.slice(i, i + CHUNK_SIZE))
+        .onConflictDoUpdate({
+          target: gists.id,
+          set: {
+            description: sql`excluded.description`,
+            htmlUrl: sql`excluded.html_url`,
+            ownerLogin: sql`excluded.owner_login`,
+            ownerAvatar: sql`excluded.owner_avatar`,
+            public: sql`excluded.public`,
+            commentsCount: sql`excluded.comments_count`,
+            forksCount: sql`excluded.forks_count`,
+            stargazersCount: sql`excluded.stargazers_count`,
+            files: sql`excluded.files`,
+            createdAt: sql`excluded.created_at`,
+            updatedAt: sql`excluded.updated_at`,
+          },
+        })
+        .run()
+    }
+
+    for (let i = 0; i < allUserGistValues.length; i += CHUNK_SIZE) {
+      await tx
+        .insert(userGists)
+        .values(allUserGistValues.slice(i, i + CHUNK_SIZE))
+        .onConflictDoUpdate({
+          target: [userGists.userId, userGists.gistId],
+          set: {
+            isOwned: sql`excluded.is_owned`,
+            isStarred: sql`excluded.is_starred`,
+            syncedAt: sql`excluded.synced_at`,
+          },
+        })
+        .run()
+    }
+  })
+
+  return { ownedCount: input.owned.length, starredCount: input.starred.length }
 }

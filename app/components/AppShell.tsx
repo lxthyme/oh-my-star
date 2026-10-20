@@ -80,7 +80,7 @@ function formatSyncTime(iso: string): string {
 }
 
 function NavMenu() {
-  const { repoCounts } = useSync()
+  const { repoCounts, gistCounts } = useSync()
   const items = [
     {
       key: "/repos",
@@ -95,6 +95,22 @@ function NavMenu() {
       label: (
         <Link href="/stars">
           已 Star{repoCounts ? ` (${repoCounts.starred})` : ""}
+        </Link>
+      ),
+    },
+    {
+      key: "/gists",
+      label: (
+        <Link href="/gists">
+          我的 Gists{gistCounts ? ` (${gistCounts.owned})` : ""}
+        </Link>
+      ),
+    },
+    {
+      key: "/starred-gists",
+      label: (
+        <Link href="/starred-gists">
+          已 Star Gists{gistCounts ? ` (${gistCounts.starred})` : ""}
         </Link>
       ),
     },

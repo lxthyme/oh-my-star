@@ -21,6 +21,7 @@ interface SyncState {
   syncVersion: number
   triggerSync: () => Promise<void>
   repoCounts: RepoCounts | null
+  gistCounts: RepoCounts | null
   refreshCounts: () => Promise<void>
 }
 
@@ -32,15 +33,31 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
   const [syncing, setSyncing] = useState(false)
   const [syncVersion, setSyncVersion] = useState(0)
   const [repoCounts, setRepoCounts] = useState<RepoCounts | null>(null)
+  const [gistCounts, setGistCounts] = useState<RepoCounts | null>(null)
 
   const refreshCounts = useCallback(async () => {
-    try {
-      setRepoCounts(await fetchJson<RepoCounts>("/api/repos/counts"))
-    } catch (error) {
+    const [repos, gists] = await Promise.allSettled([
+      fetchJson<RepoCounts>("/api/repos/counts"),
+      fetchJson<RepoCounts>("/api/gists/counts"),
+    ])
+    if (repos.status === "fulfilled") {
+      setRepoCounts(repos.value)
+    } else {
+      const error = repos.reason
       message.error(
         error instanceof Error
           ? `获取仓库数量失败: ${error.message}`
           : "获取仓库数量失败",
+      )
+    }
+    if (gists.status === "fulfilled") {
+      setGistCounts(gists.value)
+    } else {
+      const error = gists.reason
+      message.error(
+        error instanceof Error
+          ? `获取 Gist 数量失败: ${error.message}`
+          : "获取 Gist 数量失败",
       )
     }
   }, [message])
@@ -66,9 +83,11 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
       const json = await fetchJson<{
         ownedCount: number
         starredCount: number
+        gistOwnedCount: number
+        gistStarredCount: number
       }>("/api/sync", { method: "POST" })
       message.success(
-        `同步完成：owned ${json.ownedCount} / starred ${json.starredCount}`,
+        `同步完成：仓库 owned ${json.ownedCount} / starred ${json.starredCount}；Gist owned ${json.gistOwnedCount} / starred ${json.gistStarredCount}`,
       )
       setLastSyncedAt(new Date().toISOString())
       setSyncVersion((v) => v + 1)
@@ -90,6 +109,7 @@ export function SyncProvider({ children }: React.PropsWithChildren) {
         syncVersion,
         triggerSync,
         repoCounts,
+        gistCounts,
         refreshCounts,
       }}
     >

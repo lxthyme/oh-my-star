@@ -61,6 +61,11 @@ export const tags = sqliteTable(
     userId: integer("user_id").notNull(),
     name: text("name").notNull(),
     description: text("description"),
+    /**
+     * 标签归属的实体类型：repo = 仓库标签，gist = Gist 标签。
+     * 两个命名空间互不干扰，同名标签可以分别存在。
+     */
+    scope: text("scope", { enum: ["repo", "gist"] }).notNull().default("repo"),
     /** 父标签 id；NULL 表示顶级标签（1 级） */
     parentId: integer("parent_id").references((): AnySQLiteColumn => tags.id),
     /**
@@ -71,7 +76,7 @@ export const tags = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at"),
   },
-  (table) => [unique().on(table.userId, table.name)],
+  (table) => [unique().on(table.userId, table.scope, table.name)],
 )
 
 export const repoTags = sqliteTable(
@@ -83,5 +88,60 @@ export const repoTags = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.repoId, table.tagId] }),
+  ],
+)
+
+export const gists = sqliteTable("gists", {
+  /** GitHub gist id，是字符串而不是数字 */
+  id: text("id").primaryKey(),
+  description: text("description"),
+  htmlUrl: text("html_url").notNull(),
+  ownerLogin: text("owner_login").notNull(),
+  ownerAvatar: text("owner_avatar"),
+  /** 1 = public，0 = secret */
+  public: integer("public").notNull().default(0),
+  commentsCount: integer("comments_count").notNull().default(0),
+  forksCount: integer("forks_count").notNull().default(0),
+  stargazersCount: integer("stargazers_count").notNull().default(0),
+  /** 文件列表 JSON：[{ name, language, size, preview }]，preview 为截断后的内容预览 */
+  files: text("files").notNull().default("[]"),
+  createdAt: text("created_at"),
+  updatedAt: text("updated_at"),
+})
+
+export const userGists = sqliteTable(
+  "user_gists",
+  {
+    userId: integer("user_id").notNull(),
+    gistId: text("gist_id").notNull(),
+    isOwned: integer("is_owned").notNull().default(0),
+    isStarred: integer("is_starred").notNull().default(0),
+    starredAt: text("starred_at"),
+    syncedAt: text("synced_at"),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.gistId] })],
+)
+
+export const gistUserData = sqliteTable(
+  "gist_user_data",
+  {
+    userId: integer("user_id").notNull(),
+    gistId: text("gist_id").notNull(),
+    isFavorite: integer("is_favorite").notNull().default(0),
+    note: text("note"),
+    noteUpdatedAt: text("note_updated_at"),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.gistId] })],
+)
+
+export const gistTags = sqliteTable(
+  "gist_tags",
+  {
+    userId: integer("user_id").notNull(),
+    gistId: text("gist_id").notNull(),
+    tagId: integer("tag_id").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.gistId, table.tagId] }),
   ],
 )

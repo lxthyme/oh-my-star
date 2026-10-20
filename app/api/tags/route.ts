@@ -6,6 +6,7 @@ import {
   createTag,
   findTagByName,
   listTags,
+  type TagScope,
 } from "@/lib/db/tags"
 import { apiErrorResponse } from "@/lib/api-error"
 import {
@@ -19,13 +20,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  const source = request.nextUrl.searchParams.get("source")
-  const repoSource =
-    source === "owned" || source === "starred" ? source : undefined
+  const sp = request.nextUrl.searchParams
+  const source = sp.get("source")
+  const tagSource = source === "owned" || source === "starred" ? source : undefined
+  // 仓库标签与 gist 标签是两个命名空间，默认取仓库标签
+  const scope: TagScope = sp.get("scope") === "gist" ? "gist" : "repo"
 
   try {
     return NextResponse.json({
-      tags: await listTags(db, session.userId, repoSource),
+      tags: await listTags(db, session.userId, tagSource, scope),
     })
   } catch (error) {
     return apiErrorResponse(error)
@@ -59,6 +62,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // 不传 scope 时按仓库标签处理，与标签管理页的历史行为保持一致
+  const scope: TagScope = body.scope === "gist" ? "gist" : "repo"
+
   let parentId: number | null = null
   if (body.parentId !== undefined && body.parentId !== null) {
     if (!Number.isInteger(body.parentId)) {
@@ -71,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (await findTagByName(db, session.userId, name)) {
+    if (await findTagByName(db, session.userId, name, scope)) {
       return NextResponse.json(
         { error: `标签「${name}」已存在` },
         { status: 409 },
@@ -83,6 +89,7 @@ export async function POST(request: NextRequest) {
       name,
       rawDescription,
       parentId,
+      scope,
     )
     return NextResponse.json(tag, { status: 201 })
   } catch (error) {

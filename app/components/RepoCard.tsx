@@ -12,28 +12,10 @@ import {
 } from "@ant-design/icons"
 import TagSelect, { type TagOption } from "./TagSelect"
 import NoteEditor from "./NoteEditor"
+import Highlight from "./Highlight"
+import { languageColor } from "../lib/language-color"
 
 const { Text, Paragraph, Link } = Typography
-
-function Highlight({ text, keyword }: { text: string; keyword?: string }) {
-  if (!keyword) return <>{text}</>
-  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  const parts = text.split(new RegExp(`(${escaped})`, "gi"))
-  const lower = keyword.toLowerCase()
-  return (
-    <>
-      {parts.map((part, i) =>
-        part.toLowerCase() === lower ? (
-          <Text key={i} mark style={{ padding: 0 }}>
-            {part}
-          </Text>
-        ) : (
-          part
-        ),
-      )}
-    </>
-  )
-}
 
 export interface RepoCardData {
   id: number
@@ -63,14 +45,6 @@ interface RepoCardProps {
   onToggleStar: (id: number, next: boolean) => Promise<void>
   onSaveNote: (id: number, note: string) => Promise<void>
   onChangeTags: (id: number, tagNames: string[]) => Promise<void>
-}
-
-function languageColor(language: string) {
-  let hash = 0
-  for (let i = 0; i < language.length; i++) {
-    hash = (hash << 5) - hash + language.charCodeAt(i)
-  }
-  return `hsl(${Math.abs(hash) % 360}, 65%, 50%)`
 }
 
 export default function RepoCard({

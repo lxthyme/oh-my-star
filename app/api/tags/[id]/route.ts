@@ -5,6 +5,7 @@ import {
   TagHierarchyError,
   deleteTag,
   findTagByName,
+  findTagScope,
   updateTag,
   type TagUpdateInput,
 } from "@/lib/db/tags"
@@ -90,8 +91,15 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    if (input.name !== undefined) {
-      const conflict = await findTagByName(db, session.userId, input.name)
+    // 重名校验只在同一个命名空间里做：仓库标签和 Gist 标签允许同名
+    const scope = await findTagScope(db, session.userId, tagId)
+    if (input.name !== undefined && scope) {
+      const conflict = await findTagByName(
+        db,
+        session.userId,
+        input.name,
+        scope,
+      )
       if (conflict && conflict.id !== tagId) {
         return NextResponse.json(
           { error: `标签「${input.name}」已存在` },

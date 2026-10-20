@@ -9,6 +9,7 @@ import {
   Input,
   Modal,
   Popconfirm,
+  Segmented,
   Select,
   Space,
   Spin,
@@ -128,11 +129,17 @@ export default function TagManager() {
   const [modalOpen, setModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  // 仓库标签与 Gist 标签是两个命名空间，各自独立管理
+  const [scope, setScope] = useState<"repo" | "gist">("repo")
+
+  const entityLabel = scope === "repo" ? "仓库" : "Gist"
 
   const fetchTags = useCallback(async () => {
     setLoading(true)
     try {
-      const json = await fetchJson<{ tags: TagRow[] }>("/api/tags")
+      const json = await fetchJson<{ tags: TagRow[] }>(
+        scope === "gist" ? "/api/tags?scope=gist" : "/api/tags",
+      )
       setTags(json.tags)
     } catch (error) {
       message.error(
@@ -143,7 +150,7 @@ export default function TagManager() {
     } finally {
       setLoading(false)
     }
-  }, [message])
+  }, [message, scope])
 
   useEffect(() => {
     // 取数后必然 setState，react-hooks/set-state-in-effect 对所有 fetch-on-mount 都会报错
@@ -240,6 +247,7 @@ export default function TagManager() {
       name: values.name.trim(),
       description: values.description?.trim() ?? "",
       parentId: values.parentId ?? null,
+      scope,
     }
     setSubmitting(true)
     const ok = editing
@@ -305,7 +313,7 @@ export default function TagManager() {
         count > 0 ? count : <Text type="secondary">—</Text>,
     },
     {
-      title: "仓库数",
+      title: `${entityLabel}数`,
       dataIndex: "totalRepoCount",
       width: 130,
       align: "right",
@@ -359,7 +367,7 @@ export default function TagManager() {
               title={`删除标签「${tag.name}」？`}
               description={[
                 tag.totalRepoCount > 0
-                  ? `该标签已用于 ${tag.totalRepoCount} 个仓库，删除后这些仓库会移除此标签，且无法恢复。`
+                  ? `该标签已用于 ${tag.totalRepoCount} 个${entityLabel}，删除后这些${entityLabel}会移除此标签，且无法恢复。`
                   : "删除后无法恢复。",
                 tag.childrenCount > 0
                   ? `${tag.childrenCount} 个子标签将移动到「${orphanTagName}」下，之后可手动调整。`
@@ -402,6 +410,19 @@ export default function TagManager() {
         <Text strong style={{ fontSize: 16 }}>
           标签管理
         </Text>
+        <Segmented
+          value={scope}
+          onChange={(value) => {
+            setScope(value as "repo" | "gist")
+            setEditing(null)
+            setModalOpen(false)
+            setKeyword("")
+          }}
+          options={[
+            { label: "仓库标签", value: "repo" },
+            { label: "Gist 标签", value: "gist" },
+          ]}
+        />
         <Text type="secondary">共 {tags.length} 个标签</Text>
         <Input
           allowClear

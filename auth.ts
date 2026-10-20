@@ -7,7 +7,8 @@ import { isAllowedGitHubLogin } from "./lib/auth/allowlist"
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     GitHub({
-      authorization: { params: { scope: "read:user user:email repo" } },
+      // gist 作用域是读写 Gist（列表 / star / unstar）必需的
+      authorization: { params: { scope: "read:user user:email repo gist" } },
     }),
   ],
   session: { strategy: "jwt" },

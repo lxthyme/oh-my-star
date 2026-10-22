@@ -21,8 +21,10 @@ import {
 } from "antd"
 import {
   ApartmentOutlined,
+  CompressOutlined,
   DeleteOutlined,
   EditOutlined,
+  ExpandOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons"
@@ -122,6 +124,17 @@ function collectDescendantIds(tags: TagRow[], rootId: number): Set<number> {
   return result
 }
 
+/** 收集树中所有可展开节点（有子标签）的 id */
+function collectExpandableKeys(nodes: TagTreeNode[]): number[] {
+  const keys: number[] = []
+  for (const node of nodes) {
+    if (node.children && node.children.length > 0) {
+      keys.push(node.id, ...collectExpandableKeys(node.children))
+    }
+  }
+  return keys
+}
+
 export default function TagManager() {
   const { token } = theme.useToken()
   const { message } = App.useApp()
@@ -134,6 +147,8 @@ export default function TagManager() {
   const [modalOpen, setModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  // 树形表格里当前展开的节点 id（受控）
+  const [expandedRowKeys, setExpandedRowKeys] = useState<number[]>([])
   // 仓库标签与 Gist 标签是两个命名空间，各自独立管理
   const [scope, setScope] = useState<"repo" | "gist">("repo")
 
@@ -187,6 +202,26 @@ export default function TagManager() {
     () => buildTagTree(visibleTags, keyword),
     [visibleTags, keyword],
   )
+
+  // 有子标签、可展开的节点 id
+  const expandableKeys = useMemo(
+    () => collectExpandableKeys(tagTree),
+    [tagTree],
+  )
+
+  // 数据或搜索结果变化时默认全部展开
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpandedRowKeys(expandableKeys)
+  }, [expandableKeys])
+
+  const allExpanded =
+    expandableKeys.length > 0 &&
+    expandableKeys.every((key) => expandedRowKeys.includes(key))
+
+  const toggleExpandAll = () => {
+    setExpandedRowKeys(allExpanded ? [] : expandableKeys)
+  }
 
   // 专用标签可以被改名，文案里要显示它的当前名称
   const orphanTagName = useMemo(
@@ -441,6 +476,13 @@ export default function TagManager() {
           <Button icon={<ApartmentOutlined />}>层级图</Button>
         </Link>
         <Button
+          icon={allExpanded ? <CompressOutlined /> : <ExpandOutlined />}
+          onClick={toggleExpandAll}
+          disabled={expandableKeys.length === 0}
+        >
+          {allExpanded ? "折叠全部" : "展开全部"}
+        </Button>
+        <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={openCreate}
@@ -465,7 +507,11 @@ export default function TagManager() {
             dataSource={tagTree}
             scroll={{ x: true }}
             pagination={false}
-            defaultExpandAllRows
+            expandable={{
+              expandedRowKeys,
+              onExpandedRowsChange: (keys) =>
+                setExpandedRowKeys(keys as number[]),
+            }}
           />
         )}
       </Spin>

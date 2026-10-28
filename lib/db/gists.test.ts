@@ -163,7 +163,7 @@ describe("listGists", () => {
     const db = await createTestDb()
     await insertGist(db, { id: "tagged" })
     await insertGist(db, { id: "untagged" })
-    const [tag] = await setGistTags(db, TEST_USER_ID, "tagged", ["cli"])
+    const [tag] = await setGistTags(db, TEST_USER_ID, "tagged", [], ["cli"])
 
     const byTag = await listGists(db, TEST_USER_ID, {
       source: "owned",

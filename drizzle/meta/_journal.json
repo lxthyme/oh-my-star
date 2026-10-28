@@ -36,6 +36,13 @@
       "when": 1792463355104,
       "tag": "0004_dark_lyja",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793171082625,
+      "tag": "0005_skinny_vulture",
+      "breakpoints": true
     }
   ]
 }

@@ -44,7 +44,11 @@ interface RepoCardProps {
   onToggleFavorite: (id: number, next: boolean) => Promise<void>
   onToggleStar: (id: number, next: boolean) => Promise<void>
   onSaveNote: (id: number, note: string) => Promise<void>
-  onChangeTags: (id: number, tagNames: string[]) => Promise<void>
+  onChangeTags: (
+    id: number,
+    tagIds: number[],
+    newTagNames: string[],
+  ) => Promise<void>
 }
 
 export default function RepoCard({
@@ -154,8 +158,10 @@ export default function RepoCard({
 
         <TagSelect
           allTags={allTags}
-          value={repo.tags.map((t) => t.name)}
-          onChange={(tagNames) => onChangeTags(repo.id, tagNames)}
+          value={repo.tags.map((t) => t.id)}
+          onChange={(tagIds, newTagNames) =>
+            onChangeTags(repo.id, tagIds, newTagNames)
+          }
         />
 
         {repo.note && (

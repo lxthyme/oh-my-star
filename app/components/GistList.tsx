@@ -200,8 +200,17 @@ export default function GistList({ source }: GistListProps) {
     }
   }
 
-  const handleChangeTags = async (id: string, tagNames: string[]) => {
-    if (await callAndRefresh(`/api/gists/${id}/tags`, "PUT", { tagNames })) {
+  const handleChangeTags = async (
+    id: string,
+    tagIds: number[],
+    newTagNames: string[],
+  ) => {
+    if (
+      await callAndRefresh(`/api/gists/${id}/tags`, "PUT", {
+        tagIds,
+        newTagNames,
+      })
+    ) {
       await fetchTags()
       fetchGists()
     }

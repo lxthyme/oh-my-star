@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from "drizzle-orm"
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm"
 import type { AppDatabase } from "./client"
 import { gistTags, repoTags, tags, userGists, userRepos } from "./schema"
 import { ORPHAN_TAG_NAME, TAG_MAX_DEPTH } from "../tag-limits"
@@ -111,6 +111,56 @@ export async function findTagByName(
     .where(
       and(eq(tags.userId, userId), eq(tags.name, name), eq(tags.scope, scope)),
     )
+    .get()
+  return row ?? null
+}
+
+/**
+ * 在同一层级内按名称查找标签：parentId 为 null 表示顶级，
+ * 数字表示指定的父标签下。不同层级之间允许同名，故需要带 parentId。
+ */
+export async function findTagByNameAtLevel(
+  db: AppDatabase,
+  userId: number,
+  name: string,
+  parentId: number | null,
+  scope: TagScope = "repo",
+): Promise<TagOption | null> {
+  const row = await db
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .where(
+      and(
+        eq(tags.userId, userId),
+        eq(tags.name, name),
+        eq(tags.scope, scope),
+        parentId === null ? isNull(tags.parentId) : eq(tags.parentId, parentId),
+      ),
+    )
+    .get()
+  return row ?? null
+}
+
+/** 取标签的完整基本字段；标签不存在时返回 null */
+export async function findTagById(
+  db: AppDatabase,
+  userId: number,
+  tagId: number,
+): Promise<{
+  id: number
+  name: string
+  parentId: number | null
+  scope: TagScope
+} | null> {
+  const row = await db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      parentId: tags.parentId,
+      scope: tags.scope,
+    })
+    .from(tags)
+    .where(and(eq(tags.userId, userId), eq(tags.id, tagId)))
     .get()
   return row ?? null
 }
@@ -364,8 +414,9 @@ async function countTotalItemsByTagId(
 }
 
 /**
- * 创建标签；同名标签已存在时直接返回已有的（幂等），不会覆盖其描述。
- * 调用方若需要区分"已存在"，请先查 findTagByName。
+ * 创建标签；同一层级下同名标签已存在时直接返回已有的（幂等），不会覆盖其描述。
+ * 不同层级之间允许同名，因此幂等判断带上 parentId。
+ * 调用方若需要区分"已存在"，请先查 findTagByNameAtLevel。
  * parentId 省略或为 null 时创建顶级标签。
  */
 export async function createTag(
@@ -376,7 +427,7 @@ export async function createTag(
   parentId?: number | null,
   scope: TagScope = "repo",
 ): Promise<TagOption> {
-  const existing = await findTagByName(db, userId, name, scope)
+  const existing = await findTagByNameAtLevel(db, userId, name, parentId ?? null, scope)
   if (existing) return existing
 
   if (parentId !== undefined && parentId !== null) {
@@ -608,29 +659,61 @@ export async function getRepoTags(
     .all()
 }
 
+/**
+ * 整体覆盖某个 repo 的标签集合。
+ * tagIds 为已存在标签的 id（需属于当前用户，且 scope 为 repo）；
+ * newTagNames 为需要新建的标签名（建在顶级）。
+ * 返回最终关联的所有标签。
+ */
 export async function setRepoTags(
   db: AppDatabase,
   userId: number,
   repoId: number,
-  tagNames: string[],
+  tagIds: number[],
+  newTagNames: string[] = [],
 ): Promise<TagOption[]> {
+  const created: TagOption[] = []
   const uniqueNames = [
-    ...new Set(tagNames.map((name) => name.trim()).filter(Boolean)),
+    ...new Set(newTagNames.map((name) => name.trim()).filter(Boolean)),
   ]
-  const resolved: TagOption[] = []
   for (const name of uniqueNames) {
-    resolved.push(await createTag(db, userId, name))
+    created.push(await createTag(db, userId, name))
   }
+
+  // 只关联属于当前用户、且为 repo 命名空间的已有标签，避免把他人标签挂过来
+  const ownedIds = new Set<number>(created.map((tag) => tag.id))
+  const requestedIds = [...new Set(tagIds)]
+  if (requestedIds.length > 0) {
+    const rows = await db
+      .select({ id: tags.id })
+      .from(tags)
+      .where(
+        and(
+          eq(tags.userId, userId),
+          eq(tags.scope, "repo"),
+          inArray(tags.id, requestedIds),
+        ),
+      )
+      .all()
+    for (const row of rows) ownedIds.add(row.id)
+  }
+
+  const finalIds = [...ownedIds]
 
   await db.transaction(async (tx) => {
     await tx
       .delete(repoTags)
       .where(and(eq(repoTags.repoId, repoId), eq(repoTags.userId, userId)))
       .run()
-    for (const tag of resolved) {
-      await tx.insert(repoTags).values({ userId, repoId, tagId: tag.id }).run()
+    for (const tagId of finalIds) {
+      await tx.insert(repoTags).values({ userId, repoId, tagId }).run()
     }
   })
 
-  return resolved
+  if (finalIds.length === 0) return []
+  return db
+    .select({ id: tags.id, name: tags.name })
+    .from(tags)
+    .where(inArray(tags.id, finalIds))
+    .all()
 }

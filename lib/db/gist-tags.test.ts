@@ -38,7 +38,7 @@ describe("setGistTags / getGistTags", () => {
     const db = await createTestDb()
     await insertGist(db, "a", "owned")
 
-    const result = await setGistTags(db, TEST_USER_ID, "a", ["cli", "snippet"])
+    const result = await setGistTags(db, TEST_USER_ID, "a", [], ["cli", "snippet"])
     expect(result.map((t) => t.name).sort()).toEqual(["cli", "snippet"])
     expect((await getGistTags(db, TEST_USER_ID, "a")).map((t) => t.name).sort()).toEqual([
       "cli",
@@ -50,7 +50,7 @@ describe("setGistTags / getGistTags", () => {
     const db = await createTestDb()
     await insertGist(db, "a", "owned")
 
-    const [gistTag] = await setGistTags(db, TEST_USER_ID, "a", ["共享名字"])
+    const [gistTag] = await setGistTags(db, TEST_USER_ID, "a", [], ["共享名字"])
     const repoTags = await listTags(db, TEST_USER_ID)
     expect(repoTags).toEqual([])
     const gistTagList = await listTags(db, TEST_USER_ID, undefined, "gist")
@@ -63,9 +63,9 @@ describe("setGistTags / getGistTags", () => {
     await insertGist(db, "owned2", "owned")
     await insertGist(db, "starred1", "starred")
 
-    const [cli] = await setGistTags(db, TEST_USER_ID, "owned1", ["cli"])
-    await setGistTags(db, TEST_USER_ID, "owned2", ["cli"])
-    await setGistTags(db, TEST_USER_ID, "starred1", ["cli"])
+    const [cli] = await setGistTags(db, TEST_USER_ID, "owned1", [], ["cli"])
+    await setGistTags(db, TEST_USER_ID, "owned2", [], ["cli"])
+    await setGistTags(db, TEST_USER_ID, "starred1", [], ["cli"])
 
     const countsAll = Object.fromEntries(
       (await listTags(db, TEST_USER_ID, undefined, "gist")).map((t) => [
@@ -98,8 +98,8 @@ describe("setGistTags / getGistTags", () => {
     const db = await createTestDb()
     await insertGist(db, "a", "owned")
 
-    await setGistTags(db, TEST_USER_ID, "a", ["cli", "old"])
-    await setGistTags(db, TEST_USER_ID, "a", ["cli", "new"])
+    await setGistTags(db, TEST_USER_ID, "a", [], ["cli", "old"])
+    await setGistTags(db, TEST_USER_ID, "a", [], ["cli", "new"])
 
     expect((await getGistTags(db, TEST_USER_ID, "a")).map((t) => t.name).sort()).toEqual([
       "cli",

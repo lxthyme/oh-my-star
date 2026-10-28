@@ -53,7 +53,11 @@ interface GistCardProps {
   onToggleFavorite: (id: string, next: boolean) => Promise<void>
   onToggleStar: (id: string, next: boolean) => Promise<void>
   onSaveNote: (id: string, note: string) => Promise<void>
-  onChangeTags: (id: string, tagNames: string[]) => Promise<void>
+  onChangeTags: (
+    id: string,
+    tagIds: number[],
+    newTagNames: string[],
+  ) => Promise<void>
 }
 
 function formatDateTime(iso: string | null): string | null {
@@ -244,8 +248,10 @@ export default function GistCard({
 
         <TagSelect
           allTags={allTags}
-          value={gist.tags.map((t) => t.name)}
-          onChange={(tagNames) => onChangeTags(gist.id, tagNames)}
+          value={gist.tags.map((t) => t.id)}
+          onChange={(tagIds, newTagNames) =>
+            onChangeTags(gist.id, tagIds, newTagNames)
+          }
         />
 
         {gist.note && (

@@ -3,9 +3,10 @@ import {
   integer,
   text,
   primaryKey,
-  unique,
+  uniqueIndex,
   type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core"
+import { sql } from "drizzle-orm"
 
 export const repos = sqliteTable("repos", {
   id: integer("id").primaryKey(),
@@ -76,7 +77,17 @@ export const tags = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at"),
   },
-  (table) => [unique().on(table.userId, table.scope, table.name)],
+  (table) => [
+    // 标签名只在同一层级内唯一：顶级标签之间、同一父标签下的子标签之间不能重名，
+    // 但不同层级之间允许同名。SQLite 的 UNIQUE 对 NULL 视为互不相同，
+    // 因此用两个部分索引分别约束「顶级」和「同一父级」两个集合。
+    uniqueIndex("tags_user_scope_name_unique_top")
+      .on(table.userId, table.scope, table.name)
+      .where(sql`${table.parentId} is null`),
+    uniqueIndex("tags_user_scope_parent_name_unique")
+      .on(table.userId, table.scope, table.parentId, table.name)
+      .where(sql`${table.parentId} is not null`),
+  ],
 )
 
 export const repoTags = sqliteTable(

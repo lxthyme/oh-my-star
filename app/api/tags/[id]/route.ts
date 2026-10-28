@@ -4,8 +4,8 @@ import { db } from "@/lib/db/client"
 import {
   TagHierarchyError,
   deleteTag,
-  findTagByName,
-  findTagScope,
+  findTagById,
+  findTagByNameAtLevel,
   updateTag,
   type TagUpdateInput,
 } from "@/lib/db/tags"
@@ -91,21 +91,28 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    // 重名校验只在同一个命名空间里做：仓库标签和 Gist 标签允许同名
-    const scope = await findTagScope(db, session.userId, tagId)
-    if (input.name !== undefined && scope) {
-      const conflict = await findTagByName(
-        db,
-        session.userId,
-        input.name,
-        scope,
+    const current = await findTagById(db, session.userId, tagId)
+    if (!current) {
+      return NextResponse.json({ error: "标签不存在" }, { status: 404 })
+    }
+
+    // 标签名只在同一层级内唯一。校验以「更新后的最终名称 + 最终层级」为准：
+    // 改名、改层级（含移到顶级）都要检查目标层级下是否已有同名标签。
+    const targetName = input.name !== undefined ? input.name : current.name
+    const targetParentId =
+      input.parentId !== undefined ? input.parentId : current.parentId
+    const conflict = await findTagByNameAtLevel(
+      db,
+      session.userId,
+      targetName,
+      targetParentId,
+      current.scope,
+    )
+    if (conflict && conflict.id !== tagId) {
+      return NextResponse.json(
+        { error: `标签「${targetName}」已存在` },
+        { status: 409 },
       )
-      if (conflict && conflict.id !== tagId) {
-        return NextResponse.json(
-          { error: `标签「${input.name}」已存在` },
-          { status: 409 },
-        )
-      }
     }
 
     const updated = await updateTag(db, session.userId, tagId, input)

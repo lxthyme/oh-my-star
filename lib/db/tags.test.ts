@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { createTestDb } from "./test-helpers"
 import type { AppDatabase } from "./client"
-import { repos, userRepos } from "./schema"
+import { repos, repoTags, userRepos } from "./schema"
 import {
   TagHierarchyError,
   listTagSubtreeIds,
   listTags,
   createTag,
   findTagByName,
+  findTagByNameAtLevel,
   updateTag,
   deleteTag,
   getRepoTags,
@@ -96,6 +97,28 @@ describe("createTag", () => {
     const theirs = await createTag(db, 2002, "cli-tools")
     expect(theirs.id).not.toBe(mine.id)
   })
+
+  it("allows the same name at different levels but stays idempotent within a level", async () => {
+    const db = await createTestDb()
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    const child = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+    const other = await createTag(db, TEST_USER_ID, "其他")
+
+    // 不同层级允许同名：顶级「Go」与「语言」下的「Go」互不影响
+    const topGo = await createTag(db, TEST_USER_ID, "Go")
+    expect(topGo.id).not.toBe(child.id)
+
+    // 同一层级幂等：顶级「Go」与「语言」下的「Go」都返回已有的
+    expect((await createTag(db, TEST_USER_ID, "Go")).id).toBe(topGo.id)
+    expect((await createTag(db, TEST_USER_ID, "Go", null, lang.id)).id).toBe(
+      child.id,
+    )
+
+    // 另一个父级下同样允许同名
+    const otherGo = await createTag(db, TEST_USER_ID, "Go", null, other.id)
+    expect(otherGo.id).not.toBe(child.id)
+    expect(otherGo.id).not.toBe(topGo.id)
+  })
 })
 
 describe("listTags", () => {
@@ -117,9 +140,9 @@ describe("listTags", () => {
 
     const cli = await createTag(db, TEST_USER_ID, "cli")
     const docs = await createTag(db, TEST_USER_ID, "docs")
-    await setRepoTags(db, TEST_USER_ID, 1, ["cli"])
-    await setRepoTags(db, TEST_USER_ID, 2, ["cli", "docs"])
-    await setRepoTags(db, TEST_USER_ID, 3, ["cli"])
+    await setRepoTags(db, TEST_USER_ID, 1, [cli.id])
+    await setRepoTags(db, TEST_USER_ID, 2, [cli.id, docs.id])
+    await setRepoTags(db, TEST_USER_ID, 3, [cli.id])
 
     const countsAll = Object.fromEntries(
       (await listTags(db, TEST_USER_ID)).map((t) => [t.name, t.repoCount]),
@@ -167,7 +190,7 @@ describe("setRepoTags / getRepoTags", () => {
     const db = await createTestDb()
     await insertTestRepo(db)
 
-    const result = await setRepoTags(db, TEST_USER_ID, 1, [
+    const result = await setRepoTags(db, TEST_USER_ID, 1, [], [
       "cli",
       "favorite-tools",
     ])
@@ -181,8 +204,8 @@ describe("setRepoTags / getRepoTags", () => {
     const db = await createTestDb()
     await insertTestRepo(db)
 
-    await setRepoTags(db, TEST_USER_ID, 1, ["cli", "old-tag"])
-    await setRepoTags(db, TEST_USER_ID, 1, ["cli", "new-tag"])
+    await setRepoTags(db, TEST_USER_ID, 1, [], ["cli", "old-tag"])
+    await setRepoTags(db, TEST_USER_ID, 1, [], ["cli", "new-tag"])
 
     expect(
       (await getRepoTags(db, TEST_USER_ID, 1)).map((t) => t.name).sort(),
@@ -193,13 +216,24 @@ describe("setRepoTags / getRepoTags", () => {
     const db = await createTestDb()
     await insertTestRepo(db)
 
-    const result = await setRepoTags(db, TEST_USER_ID, 1, [
+    const result = await setRepoTags(db, TEST_USER_ID, 1, [], [
       " cli ",
       "cli",
       "",
       "  ",
     ])
     expect(result.map((t) => t.name)).toEqual(["cli"])
+  })
+
+  it("attaches existing tags by id without creating duplicates", async () => {
+    const db = await createTestDb()
+    await insertTestRepo(db)
+
+    const cli = await createTag(db, TEST_USER_ID, "cli")
+    const result = await setRepoTags(db, TEST_USER_ID, 1, [cli.id], [])
+
+    expect(result).toEqual([{ id: cli.id, name: "cli" }])
+    expect((await listTags(db, TEST_USER_ID))).toHaveLength(1)
   })
 })
 
@@ -213,6 +247,27 @@ describe("findTagByName", () => {
     })
     expect(await findTagByName(db, TEST_USER_ID, "missing")).toBeNull()
     expect(await findTagByName(db, 2002, "cli-tools")).toBeNull()
+  })
+})
+
+describe("findTagByNameAtLevel", () => {
+  it("finds a tag only within the same level", async () => {
+    const db = await createTestDb()
+    const lang = await createTag(db, TEST_USER_ID, "语言")
+    const child = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+    const topGo = await createTag(db, TEST_USER_ID, "Go")
+
+    expect(await findTagByNameAtLevel(db, TEST_USER_ID, "Go", null)).toEqual({
+      id: topGo.id,
+      name: "Go",
+    })
+    expect(
+      await findTagByNameAtLevel(db, TEST_USER_ID, "Go", lang.id),
+    ).toEqual({ id: child.id, name: "Go" })
+    expect(
+      await findTagByNameAtLevel(db, TEST_USER_ID, "Go", 999999),
+    ).toBeNull()
+    expect(await findTagByNameAtLevel(db, TEST_USER_ID, "missing", null)).toBeNull()
   })
 })
 
@@ -263,7 +318,7 @@ describe("deleteTag", () => {
     const db = await createTestDb()
     await insertRepoWithSource(db, 1, { isOwned: 1 })
     const tag = await createTag(db, TEST_USER_ID, "cli")
-    await setRepoTags(db, TEST_USER_ID, 1, ["cli"])
+    await setRepoTags(db, TEST_USER_ID, 1, [tag.id])
 
     expect(await deleteTag(db, TEST_USER_ID, tag.id)).toEqual({
       ok: true,
@@ -431,18 +486,25 @@ describe("tag hierarchy", () => {
     await insertRepoWithSource(db, 2, { isOwned: 1 })
 
     const lang = await createTag(db, TEST_USER_ID, "语言")
-    await createTag(db, TEST_USER_ID, "Go", null, lang.id)
-    // repo 1 同时打了父与子，只能算一次
-    await setRepoTags(db, TEST_USER_ID, 1, ["语言", "Go"])
-    await setRepoTags(db, TEST_USER_ID, 2, ["Go"])
+    const go = await createTag(db, TEST_USER_ID, "Go", null, lang.id)
+    // repo 1 同时打了父与子，只能算一次；repo 2 只打了子标签。
+    // 标签名允许在不同层级重复，这里直接用 id 挂标签，避免按名称解析产生歧义。
+    await db
+      .insert(repoTags)
+      .values([
+        { userId: TEST_USER_ID, repoId: 1, tagId: lang.id },
+        { userId: TEST_USER_ID, repoId: 1, tagId: go.id },
+        { userId: TEST_USER_ID, repoId: 2, tagId: go.id },
+      ])
+      .run()
 
-    const byName = new Map(
-      (await listTags(db, TEST_USER_ID)).map((t) => [t.name, t]),
+    const byId = new Map(
+      (await listTags(db, TEST_USER_ID)).map((t) => [t.id, t]),
     )
-    expect(byName.get("Go")!.repoCount).toBe(2)
-    expect(byName.get("Go")!.totalRepoCount).toBe(2)
-    expect(byName.get("语言")!.repoCount).toBe(1)
-    expect(byName.get("语言")!.totalRepoCount).toBe(2)
+    expect(byId.get(go.id)!.repoCount).toBe(2)
+    expect(byId.get(go.id)!.totalRepoCount).toBe(2)
+    expect(byId.get(lang.id)!.repoCount).toBe(1)
+    expect(byId.get(lang.id)!.totalRepoCount).toBe(2)
   })
 
   it("returns the subtree ids", async () => {

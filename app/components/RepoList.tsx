@@ -214,8 +214,17 @@ export default function RepoList({ source }: RepoListProps) {
     }
   }
 
-  const handleChangeTags = async (id: number, tagNames: string[]) => {
-    if (await callAndRefresh(`/api/repos/${id}/tags`, "PUT", { tagNames })) {
+  const handleChangeTags = async (
+    id: number,
+    tagIds: number[],
+    newTagNames: string[],
+  ) => {
+    if (
+      await callAndRefresh(`/api/repos/${id}/tags`, "PUT", {
+        tagIds,
+        newTagNames,
+      })
+    ) {
       await fetchTags()
       fetchRepos()
     }

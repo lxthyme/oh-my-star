@@ -4,7 +4,7 @@ import { db } from "@/lib/db/client"
 import {
   TagHierarchyError,
   createTag,
-  findTagByName,
+  findTagByNameAtLevel,
   listTags,
   type TagScope,
 } from "@/lib/db/tags"
@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (await findTagByName(db, session.userId, name, scope)) {
+    // 标签名只在同一层级内唯一：同 parentId（顶级为 null）下不能重名
+    if (await findTagByNameAtLevel(db, session.userId, name, parentId, scope)) {
       return NextResponse.json(
         { error: `标签「${name}」已存在` },
         { status: 409 },

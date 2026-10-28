@@ -65,7 +65,7 @@ export default function TagSelect({
     <Select
       mode="multiple"
       size="small"
-      style={{ minWidth: 160 }}
+      style={{ width: "100%" }}
       placeholder="添加标签"
       value={value}
       options={options}
